@@ -82,8 +82,8 @@ checking normal installed loader resolution.
 `build-module-inputs.sh` emits the existing Darling overlay source sets into a
 private directory without linking or replacing runtime binaries. It leaves
 `../build.sh` and its arm64 publication behavior unchanged. Set `CRYPTOKIT_ARCH`
-explicitly, provide genuine source-built Darwin `Swift` and `_Concurrency`
-modules for that target in `SWIFT_RESOURCE_DIR`, and set the same toolchain,
+explicitly, provide genuine source-built Darwin `Swift`, `_Concurrency` and
+`_StringProcessing` modules for that target in `SWIFT_RESOURCE_DIR`, and set the same toolchain,
 source SDK and `DARLING_SOURCE_ROOT` used by the focused CryptoKit build.
 
 Provide pristine source checkouts through `OPENCOMBINE_SRC`,
@@ -99,9 +99,9 @@ actual upstream additions. No replacement Foundation declarations are generated.
 `build-modules-$CRYPTOKIT_ARCH`. Set `OVERLAY_BUILD_DIR` to this directory for the
 subsequent focused CryptoKit build. The helper emits Darwin, ObjectiveC,
 CoreFoundation, Dispatch, os, XPC, Combine, InternalCollectionsUtilities,
-_RopeModule and Foundation modules. It uses release optimization and disables
-only the implicit string-processing module import; any source that actually
-requires further modules must still compile successfully. It requires real
+_RopeModule and Foundation modules. It uses release optimization and normal implicit string-processing imports;
+the existing os source uses the real substring `String.contains` overload from
+`_StringProcessing`. Any further source dependencies must still compile successfully. It requires real
 concurrency types rather than substituting executor or async declarations.
 
 These compile inputs do not supply runtime implementations. A module that

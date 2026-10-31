@@ -21,7 +21,7 @@ cleanup_modules() {
 trap 'build_status=$?; if [ "$build_status" -ne 0 ]; then cleanup_modules; fi' 0
 cleanup_modules
 rm -rf "$out/module-cache"
-for module in Swift _Concurrency; do
+for module in Swift _Concurrency _StringProcessing; do
  if [ ! -s "$SWIFT_RESOURCE_DIR/macosx/$module.swiftmodule/$arch-apple-macos.swiftmodule" ]; then
   printf 'Missing source-built Darwin module for %s: %s\n' "$arch" "$module" >&2
   exit 1
@@ -65,7 +65,7 @@ emit_module() {
  "$SWIFT_TOOLCHAIN/bin/swiftc" -frontend -emit-module @"$response" \
   -target "$target" -sdk "$DARLING_SDK" -resource-dir "$SWIFT_RESOURCE_DIR" \
   -module-cache-path "$out/module-cache" -swift-version 5 -module-name "$module" \
-  -parse-as-library -O -disable-implicit-string-processing-module-import \
+  -parse-as-library -O \
   -Xcc -I"$DARLING_SOURCE_ROOT/src/frameworks/CoreServices/include" \
   -emit-module-path "$out/modules/$module.swiftmodule" "$@"
  test -s "$out/modules/$module.swiftmodule"
