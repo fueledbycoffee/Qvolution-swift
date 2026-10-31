@@ -109,3 +109,11 @@ compiles can still require exports absent from an older installed overlay.
 Verify real CryptoKit compilation and strong linking, typed vectors and normal
 installed-client execution against the matching runtime before claiming API or
 ABI compatibility. A failed helper clears all its module outputs.
+
+For a focused build and its typed client against a selected staged Swift runtime,
+set `SWIFT_RUNTIME_DIR` to that runtime's `usr/lib/swift` directory. Both scripts
+require its five directly linked Swift libraries to exist and use that directory
+in place of the original resource/repository library search paths. The default
+search paths remain unchanged when this variable is unset. Library presence is
+not architecture or runtime qualification; the actual strong link and runtime
+checks are still required.

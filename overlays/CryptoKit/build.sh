@@ -25,6 +25,20 @@ trap 'build_status=$?; if [ "$build_status" -ne 0 ]; then cleanup_outputs; fi' 0
 cleanup_outputs
 rm -rf "$out/module-cache"
 
+# An explicit runtime directory binds these links to the selected staged runtime.
+# Preserve the original resource/repository search paths when no override is set.
+if [ -n "${SWIFT_RUNTIME_DIR:-}" ]; then
+    for library in swiftCore swiftFoundation swiftCoreFoundation swiftDarwin swiftObjectiveC; do
+        if [ ! -s "$SWIFT_RUNTIME_DIR/lib$library.dylib" ]; then
+            printf 'Missing selected Swift runtime library: %s\n' "$SWIFT_RUNTIME_DIR/lib$library.dylib" >&2
+            exit 1
+        fi
+    done
+    set -- -L "$SWIFT_RUNTIME_DIR"
+else
+    set -- -L "$SWIFT_RESOURCE_DIR/macosx" -L "$repo"
+fi
+
 # The first pin is this runtime's SHA256/HMAC source. The second is upstream tag
 # 3.12.3, before span-only API additions: the stable AEAD APIs Roon imports.
 base=c4105ade5fbe6866375ec65146cac733d53a1146
@@ -93,7 +107,7 @@ printf '"%s"\n' "$here/AEAD.swift" >> "$out/sources"
     -syslibroot "$DARLING_SDK" \
     -install_name /System/Library/Frameworks/CryptoKit.framework/Versions/A/CryptoKit \
     -compatibility_version 1.0.0 -current_version 1.0.0 \
-    ${LD_EXTRA_FLAGS:-} -L "$SWIFT_RESOURCE_DIR/macosx" -L "$repo" \
+    ${LD_EXTRA_FLAGS:-} "$@" \
     "$out/obj/CryptoKit.o" "$out/obj/AEAD.o" "$DARLING_LIBSYSTEM" \
     "$DARLING_ROOT/usr/lib/libobjc.A.dylib" "$DARLING_ROOT/usr/lib/libcrypto.44.dylib" \
     -lswiftCore -lswiftFoundation -lswiftCoreFoundation -lswiftDarwin -lswiftObjectiveC \

@@ -13,6 +13,19 @@ out=${CRYPTOKIT_BUILD_DIR:-$default_out}
 : "${OVERLAY_BUILD_DIR:?}" "${DARLING_SOURCE_ROOT:?}"
 rm -f "$out/obj/tests.o" "$out/cryptokit-tests"
 rm -rf "$out/test-module-cache"
+# An explicit runtime directory binds these links to the selected staged runtime.
+# Preserve the original resource/repository search paths when no override is set.
+if [ -n "${SWIFT_RUNTIME_DIR:-}" ]; then
+    for library in swiftCore swiftFoundation swiftCoreFoundation swiftDarwin swiftObjectiveC; do
+        if [ ! -s "$SWIFT_RUNTIME_DIR/lib$library.dylib" ]; then
+            printf 'Missing selected Swift runtime library: %s\n' "$SWIFT_RUNTIME_DIR/lib$library.dylib" >&2
+            exit 1
+        fi
+    done
+    set -- -L "$SWIFT_RUNTIME_DIR"
+else
+    set -- -L "$SWIFT_RESOURCE_DIR/macosx" -L "$repo"
+fi
 framework_path=${CRYPTOKIT_FRAMEWORK_PATH:-$out}
 if [ -z "${CRYPTOKIT_FRAMEWORK_PATH:-}" ]; then
  mkdir -p "$out/CryptoKit.framework/Versions/A"
@@ -31,7 +44,7 @@ fi
  -I "$repo/overlays/CryptoKit" -Xcc -I"$DARLING_SOURCE_ROOT/src/frameworks/CoreServices/include" \
  -Xcc -fmodule-map-file="$repo/overlays/shims/overlay-shims.modulemap" -o "$out/obj/tests.o"
 "$DARLING_LD" -arch "$arch" -platform_version macos 26.0 26.0 -syslibroot "$DARLING_SDK" \
- ${LD_EXTRA_FLAGS:-} -L "$SWIFT_RESOURCE_DIR/macosx" -L "$repo" \
+ ${LD_EXTRA_FLAGS:-} "$@" \
  "${DARLING_CRT1:?path to Darling crt1 start.S.o for CRYPTOKIT_ARCH}" \
  "$out/obj/tests.o" -F "$framework_path" -framework CryptoKit "$DARLING_LIBSYSTEM" \
  "$DARLING_ROOT/usr/lib/libobjc.A.dylib" \
