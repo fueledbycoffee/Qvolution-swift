@@ -76,3 +76,36 @@ runtime's `System/Library/Frameworks` directory, compile with `tests/run.sh`, an
 run that client using the installed runtime. The script never modifies this
 explicit framework directory. Run without a framework search override when
 checking normal installed loader resolution.
+
+## Source modules for an additional architecture
+
+`build-module-inputs.sh` emits the existing Darling overlay source sets into a
+private directory without linking or replacing runtime binaries. It leaves
+`../build.sh` and its arm64 publication behavior unchanged. Set `CRYPTOKIT_ARCH`
+explicitly, provide genuine source-built Darwin `Swift` and `_Concurrency`
+modules for that target in `SWIFT_RESOURCE_DIR`, and set the same toolchain,
+source SDK and `DARLING_SOURCE_ROOT` used by the focused CryptoKit build.
+
+Provide pristine source checkouts through `OPENCOMBINE_SRC`,
+`SWIFT_COLLECTIONS_SRC`, `SWIFT_CMARK_SRC` and `SWIFT_FOUNDATION_SRC`. The helper
+verifies the existing recipe's exact pins and applies its existing Combine
+patches only to a private copy. `foundation-module-sources.list` repeats the
+current recipe's upstream Foundation source paths, in the same order; keep it
+aligned when the main Foundation build changes. All local overlay sources are
+compiled, including the existing partial Foundation implementation and its
+actual upstream additions. No replacement Foundation declarations are generated.
+
+`CRYPTOKIT_MODULES_BUILD_DIR` selects the output; the default is
+`build-modules-$CRYPTOKIT_ARCH`. Set `OVERLAY_BUILD_DIR` to this directory for the
+subsequent focused CryptoKit build. The helper emits Darwin, ObjectiveC,
+CoreFoundation, Dispatch, os, XPC, Combine, InternalCollectionsUtilities,
+_RopeModule and Foundation modules. It uses release optimization and disables
+only the implicit string-processing module import; any source that actually
+requires further modules must still compile successfully. It requires real
+concurrency types rather than substituting executor or async declarations.
+
+These compile inputs do not supply runtime implementations. A module that
+compiles can still require exports absent from an older installed overlay.
+Verify real CryptoKit compilation and strong linking, typed vectors and normal
+installed-client execution against the matching runtime before claiming API or
+ABI compatibility. A failed helper clears all its module outputs.
