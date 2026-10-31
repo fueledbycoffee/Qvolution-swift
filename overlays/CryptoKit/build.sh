@@ -7,8 +7,23 @@ set -eu
 : "${DARLING_SOURCE_ROOT:?}"
 here=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
 repo=$(CDPATH= cd -- "$here/../.." && pwd)
-out=${CRYPTOKIT_BUILD_DIR:-$here/build}
+arch=${CRYPTOKIT_ARCH:-arm64}
+case "$arch" in
+    arm64) default_out="$here/build" ;;
+    x86_64) default_out="$here/build-x86_64" ;;
+    *) printf 'Unsupported CryptoKit architecture: %s\n' "$arch" >&2; exit 1 ;;
+esac
+target="$arch-apple-macosx26.0"
+out=${CRYPTOKIT_BUILD_DIR:-$default_out}
 mkdir -p "$out/src" "$out/obj" "$out/modules"
+cleanup_outputs() {
+    rm -f "$out/obj/AEAD.o" "$out/obj/CryptoKit.o" "$out/CryptoKit" \
+        "$out/modules/CryptoKit.swiftmodule" "$out/modules/CryptoKit.swiftdoc" \
+        "$out/modules/CryptoKit.swiftsourceinfo"
+}
+trap 'build_status=$?; if [ "$build_status" -ne 0 ]; then cleanup_outputs; fi' 0
+cleanup_outputs
+rm -rf "$out/module-cache"
 
 # The first pin is this runtime's SHA256/HMAC source. The second is upstream tag
 # 3.12.3, before span-only API additions: the stable AEAD APIs Roon imports.
@@ -59,12 +74,11 @@ Sources/Crypto/AEADs/ChachaPoly/ChaChaPoly.swift
 SOURCES
 printf '"%s"\n' "$here/AEAD.swift" >> "$out/sources"
 
-rm -f "$out/obj/AEAD.o" "$out/obj/CryptoKit.o" "$out/CryptoKit"
-"$SWIFT_TOOLCHAIN/bin/clang" -target arm64-apple-macosx26.0 -isysroot "$DARLING_SDK" \
+"$SWIFT_TOOLCHAIN/bin/clang" -target "$target" -isysroot "$DARLING_SDK" \
     -I "$DARLING_SOURCE_ROOT/src/external/libressl-2.8.3/include" \
     -O2 -c "$here/aead.c" -o "$out/obj/AEAD.o"
 "$SWIFT_TOOLCHAIN/bin/swiftc" -frontend -c @"$out/sources" \
-    -target arm64-apple-macosx26.0 -sdk "$DARLING_SDK" -resource-dir "$SWIFT_RESOURCE_DIR" \
+    -target "$target" -sdk "$DARLING_SDK" -resource-dir "$SWIFT_RESOURCE_DIR" \
     -module-cache-path "$out/module-cache" -swift-version 5 -module-name CryptoKit \
     -D DARLING_CRYPTOKIT_MODULE -D CRYPTO_IN_SWIFTPM_FORCE_BUILD_API \
     -enable-experimental-feature Lifetimes -enable-library-evolution -parse-as-library -O \
@@ -75,7 +89,7 @@ rm -f "$out/obj/AEAD.o" "$out/obj/CryptoKit.o" "$out/CryptoKit"
 
 # LD_EXTRA_FLAGS contains the same install-name mappings as the runtime's link.
 # shellcheck disable=SC2086
-"$DARLING_LD" -dylib -arch arm64 -platform_version macos 26.0 26.0 \
+"$DARLING_LD" -dylib -arch "$arch" -platform_version macos 26.0 26.0 \
     -syslibroot "$DARLING_SDK" \
     -install_name /System/Library/Frameworks/CryptoKit.framework/Versions/A/CryptoKit \
     -compatibility_version 1.0.0 -current_version 1.0.0 \
