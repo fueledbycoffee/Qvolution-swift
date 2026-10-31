@@ -10,9 +10,13 @@ case "$arch" in arm64|x86_64) ;; *) printf 'Unsupported architecture: %s\n' "$ar
 target="$arch-apple-macosx26.0"
 out=${CRYPTOKIT_MODULES_BUILD_DIR:-$here/build-modules-$arch}
 modules='Darwin ObjectiveC CoreFoundation Dispatch os XPC Combine InternalCollectionsUtilities _RopeModule Foundation'
+emit_objects=${CRYPTOKIT_EMIT_OVERLAY_OBJECTS:-0}
+case "$emit_objects" in 0|1) ;; *) printf 'Invalid object-emission mode: %s\n' "$emit_objects" >&2; exit 1 ;; esac
+if [ "$emit_objects" = 1 ]; then mkdir -p "$out/obj"; fi
 mkdir -p "$out/modules"
 cleanup_modules() {
  for module in $modules; do
+  if [ "$emit_objects" = 1 ]; then rm -f "$out/obj/$module.o"; fi
   for suffix in swiftmodule swiftdoc swiftsourceinfo swiftinterface private.swiftinterface package.swiftinterface abi.json; do
    rm -f "$out/modules/$module.$suffix"
   done
@@ -62,13 +66,20 @@ emit_module() {
  if [ "$module" != Combine ]; then
   set -- -I "$out/modules" -Xcc -fmodule-map-file="$overlays/shims/overlay-shims.modulemap" "$@"
  fi
- "$SWIFT_TOOLCHAIN/bin/swiftc" -frontend -emit-module @"$response" \
+ if [ "$emit_objects" = 1 ]; then
+  set -- -o "$out/obj/$module.o" "$@"
+  emission=-c
+ else
+  emission=-emit-module
+ fi
+ "$SWIFT_TOOLCHAIN/bin/swiftc" -frontend "$emission" @"$response" \
   -target "$target" -sdk "$DARLING_SDK" -resource-dir "$SWIFT_RESOURCE_DIR" \
   -module-cache-path "$out/module-cache" -swift-version 5 -module-name "$module" \
   -parse-as-library -O \
   -Xcc -I"$DARLING_SOURCE_ROOT/src/frameworks/CoreServices/include" \
   -emit-module-path "$out/modules/$module.swiftmodule" "$@"
  test -s "$out/modules/$module.swiftmodule"
+ if [ "$emit_objects" = 1 ]; then test -s "$out/obj/$module.o"; fi
 }
 build_overlay() {
  name=$1

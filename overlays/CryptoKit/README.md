@@ -117,3 +117,30 @@ in place of the original resource/repository library search paths. The default
 search paths remain unchanged when this variable is unset. Library presence is
 not architecture or runtime qualification; the actual strong link and runtime
 checks are still required.
+
+## Matching source overlay runtime
+
+`build-runtime-inputs.sh` compiles the same complete ten source module sets into
+objects with the selected compiler, then links the seven existing Swift overlay
+dylibs and the real OpenCombine framework privately. It also compiles the
+existing Dispatch Objective-C helpers, Combine C helpers, and all of the pinned
+recipe's cmark C sources. The private collections objects are linked into
+Foundation with the recipe's unexported-symbol patterns. No implementation
+source is reduced, and no legacy runtime compatibility variable is synthesized.
+
+Set the module helper's source variables plus `DARLING_LD`,
+`DARLING_LIBSYSTEM`, `DARLING_ROOT`, and an explicit `SWIFT_RUNTIME_DIR` containing
+the selected core runtime libraries. `CRYPTOKIT_MODULES_BUILD_DIR` is required
+and must be a private build directory. `CRYPTOKIT_ARCH` still defaults to arm64;
+choose x86_64 explicitly for that target. The original `../build.sh`, its arm64
+publication and all shipped artifacts are unchanged. The existing module helper
+continues to emit modules only unless the runtime helper explicitly requests
+`CRYPTOKIT_EMIT_OVERLAY_OBJECTS=1`.
+
+The runtime helper's `runtime` subdirectory combines symlinks to the selected
+core runtime with the freshly built overlays, so focused CryptoKit builds can
+select it through `SWIFT_RUNTIME_DIR`. This is only a private build input.
+A successful link does not establish that the existing partial Foundation or
+Combine implementations are complete substitutes for Apple's frameworks.
+Actual private-prefix algorithm vectors, normal installed clients and
+application execution remain separate requirements.
