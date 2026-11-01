@@ -136,3 +136,10 @@ extension Locale.Language {
         return _icuString({ uloc_toLanguageTag(likely, $0, $1, UBool(0), &$2) }) ?? id
     }
 }
+
+@available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
+extension Locale {
+    public init(languageCode: LanguageCode? = nil, script: Script? = nil, languageRegion: Region? = nil) {
+        self.init(identifier: Language.Components(languageCode: languageCode, script: script, region: languageRegion).identifier)
+    }
+}

@@ -67,3 +67,5 @@ FoundationInternationalization/ICU/ICU+FieldPositer.swift
 FoundationInternationalization/ICU/ICU+Foundation.swift
 FoundationInternationalization/RangeExpression.swift
 FoundationInternationalization/TimeInterval+Utils.swift
+FoundationInternationalization/Formatting/ListFormatStyle.swift
+FoundationInternationalization/Formatting/ICUListFormatter.swift

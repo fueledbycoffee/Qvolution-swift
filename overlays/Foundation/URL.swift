@@ -518,3 +518,42 @@ extension URL : Codable {
         }
     }
 }
+
+extension URL {
+    @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
+    public init(filePath path: String, directoryHint: DirectoryHint = .inferFromPath, relativeTo base: URL? = nil) {
+        if case .checkFileSystem = directoryHint {
+            self = URL(fileURLWithPath: path, relativeTo: base)
+            return
+        }
+        let isDirectory: Bool
+        switch directoryHint {
+        case .isDirectory: isDirectory = true
+        case .notDirectory: isDirectory = false
+        case .inferFromPath: isDirectory = path.hasSuffix("/")
+        case .checkFileSystem: preconditionFailure("Handled above")
+        }
+        let p = path.isEmpty ? "." : path
+        let reference = p.withCString {
+            NSURL.fileURL(withFileSystemRepresentation: $0, isDirectory: isDirectory, relativeTo: base)
+        } as! NSURL
+        self = URL(reference: reference)
+    }
+
+    @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
+    public static var applicationDirectory: URL {
+        let paths = NSSearchPathForDirectoriesInDomains(.applicationDirectory, .localDomainMask, true)!
+        return URL(fileURLWithPath: paths[0] as! String, isDirectory: true)
+    }
+
+    @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
+    public static var applicationSupportDirectory: URL {
+        let paths = NSSearchPathForDirectoriesInDomains(.applicationSupportDirectory, .userDomainMask, true)!
+        return URL(fileURLWithPath: paths[0] as! String, isDirectory: true)
+    }
+
+    public init(for directory: NSSearchPathDirectory, in domain: NSSearchPathDomainMask,
+                appropriateFor reference: URL?, create shouldCreate: Bool) throws {
+        self = try FileManager.default.url(for: directory, in: domain, appropriateFor: reference, create: shouldCreate)
+    }
+}
