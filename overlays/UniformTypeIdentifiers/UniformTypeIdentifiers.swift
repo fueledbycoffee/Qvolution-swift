@@ -319,3 +319,18 @@ extension UTTagClass: Codable {
 		self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
 	}
 }
+
+extension URL {
+    // GUESS (rung 6): preserve a matching extension, otherwise append the preferred
+    // extension. The local public documentation cache has no member page.
+    public func appendingPathComponent(_ component: String, conformingTo type: UTType) -> URL {
+        let result = appendingPathComponent(component, isDirectory: type.conforms(to: .directory))
+        guard !type.conforms(to: .directory), let preferred = type.preferredFilenameExtension else {
+            return result
+        }
+        if let existing = UTType(filenameExtension: result.pathExtension), existing.conforms(to: type) {
+            return result
+        }
+        return result.appendingPathExtension(preferred)
+    }
+}

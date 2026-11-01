@@ -1,0 +1,15 @@
+{
+  "sources": [
+    "UniformTypeIdentifiers.swift"
+  ],
+  "args": [
+    "--modulemap",
+    "@HERE@/shims/module.modulemap",
+    "--link=@ROOT@/System/Library/Frameworks/UniformTypeIdentifiers.framework/Versions/A/UniformTypeIdentifiers",
+    "--link=@ROOT@/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation",
+    "--link=-lswiftFoundation",
+    "--link=-lswiftCoreFoundation",
+    "--link=-lswiftObjectiveC",
+    "--link=-lswiftDarwin"
+  ]
+}
