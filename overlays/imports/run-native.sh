@@ -29,10 +29,14 @@ finish() {
   "$W/dashboard/qv-host-guard" verify "$run/home-before.tsv" > "$run/home-verify.log" 2>&1; guarded=$?
   if (( guarded != 0 )); then result=$guarded
   elif (( result == 0 && stopped != 0 )); then result=$stopped; fi
+  if (( result == 0 )); then printf 'PASS real five-image load, URL/listener/async behavior and WebSocket rejection: %s\n' "$run"; fi
   exit "$result"
 }
 "$W/dashboard/qv-host-guard" snapshot "$run/home-before.tsv"
 trap finish EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+trap 'exit 129' HUP
 guest() {
   local label=$1 result attempt; shift
   for attempt in 1 2; do
@@ -59,4 +63,3 @@ for mode in websocket-options websocket-metadata; do
   [[ $result == 132 ]] || { echo "Expected Swift fatalError SIGILL for $mode, received $result" >&2; exit 1; }
   grep -q "^BEGIN $mode$" "$run/$mode-1.log" "$run/$mode-2.log" 2>/dev/null
 done
-printf 'PASS real five-image load, URL/listener/async behavior and WebSocket rejection: %s\n' "$run"
