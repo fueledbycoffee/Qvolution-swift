@@ -1,0 +1,20 @@
+--- a/KeyPathComparator.swift
++++ b/KeyPathComparator.swift
+@@ -96,7 +96,7 @@
+         let sendableKP = keyPath._unsafeAssumeSendable
+         self.keyPath = sendableKP
+         if Value.self is String.Type {
+-#if FOUNDATION_FRAMEWORK
++#if true // Darling exposes NSString-backed localized standard comparison.
+             self.comparator = AnySortComparator(String.StandardComparator.localizedStandard)
+ #else
+             // TODO: Until we support String.compare(_:options:locale:) in FoundationInternationalization, use the lexical default
+@@ -134,7 +134,7 @@
+         let sendableKP = keyPath._unsafeAssumeSendable
+         self.keyPath = sendableKP
+         if Value.self is String.Type {
+-#if FOUNDATION_FRAMEWORK
++#if true // Darling exposes NSString-backed localized standard comparison.
+             self.comparator = AnySortComparator(OptionalComparator(String.StandardComparator.localizedStandard))
+ #else
+             // TODO: Until we support String.compare(_:options:locale:) in FoundationInternationalization, use the lexical default

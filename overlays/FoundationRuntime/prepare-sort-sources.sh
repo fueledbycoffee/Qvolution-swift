@@ -10,4 +10,6 @@ mkdir -p "$out"
 copy=$(mktemp -d "$out/sort-sources.XXXXXXXX")
 cp "$src/Sources/FoundationInternationalization/String/String+SortComparator.swift" "$copy/String+SortComparator.swift"
 patch -s --batch -p1 -d "$copy" < "$here/patches/0001-select-framework-string-comparators.patch" >&2
-printf '%s\n' "$copy/String+SortComparator.swift"
+cp "$src/Sources/FoundationInternationalization/String/KeyPathComparator.swift" "$copy/KeyPathComparator.swift"
+patch -s --batch -p1 -d "$copy" < "$here/patches/0002-select-framework-keypath-comparators.patch" >&2
+printf '%s\n' "$copy/String+SortComparator.swift" "$copy/KeyPathComparator.swift"

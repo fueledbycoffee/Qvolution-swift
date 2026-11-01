@@ -29,4 +29,7 @@ and comparable comparators, and collection sorting. It uses the existing
 ComparisonResult alias; the compiler emits the Foundation ABI. String comparators
 use the same pin's framework branch, patched privately by
 prepare-sort-sources.sh because Darling already exposes NSString comparison.
-Key-path comparators still need a separate port.
+Key-path comparators use the same pin, including the published Sendable
+key-path adaptation from PredicateExpression.swift. The String special case uses
+the framework branch so default string sorting stays localized-standard.
+The compiler emits every exported entry point.
