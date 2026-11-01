@@ -1,0 +1,12 @@
+{
+  "sources": [
+    "os.swift"
+  ],
+  "args": [
+    "--modulemap",
+    "@HERE@/shims/module.modulemap",
+    "--link=-lswiftDarwin",
+    "--link=-lswiftObjectiveC",
+    "--link=-lswiftDispatch"
+  ]
+}
