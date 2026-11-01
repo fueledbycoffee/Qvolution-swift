@@ -1,6 +1,7 @@
 {
   "sources": [
     "NWBrowser.swift",
+    "NWListener.swift",
     "NWPath+Darling.swift",
     "NWProtocolWebSocket.swift"
   ],
@@ -26,7 +27,6 @@
       "NWConnection.swift",
       "NWEndpoint.swift",
       "NWError.swift",
-      "NWListener.swift",
       "NWParameters.swift",
       "NWPath.swift",
       "NWProtocol.swift",
@@ -38,7 +38,6 @@
     ],
     "patches": [
       "patches/NWError.patch",
-      "patches/NWListener.patch",
       "patches/NWPath.patch"
     ]
   }

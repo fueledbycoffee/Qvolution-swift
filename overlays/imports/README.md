@@ -18,7 +18,7 @@ Modules are x86_64 only; do not enable for an arm64 installation.
 Network consumes Apple Swift 5.2.2 from SWIFT_NETWORK_SOURCE (default: the
 workspace's read-only catalyst/oss/swift-5.2.2), pinned to
 `d66af16429153d81a8f5791a6da9d9b3d4b61bc7` (swift-5.2.2-RELEASE).
-Its pristine source files are not vendored. Three small patches are applied
+Its pristine source files are not vendored. Two small patches are applied
 with zero fuzz to a fresh private copy. The upstream checkout must be clean
 and at the pin; missing inputs fail explicitly without fetching the network.
 CMake records original source paths and patch files as Ninja dependencies.
