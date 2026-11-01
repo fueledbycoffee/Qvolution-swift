@@ -252,6 +252,12 @@ add_darling_library(swift_DarwinFoundation1 SHARED swift_DarwinFoundation1.S)
 target_link_libraries(swift_DarwinFoundation1 system)
 set_target_properties(swift_DarwinFoundation1 PROPERTIES
     LINKER_LANGUAGE C OUTPUT_NAME "swift_DarwinFoundation1")
+# Keep both install-name mappings in use_ld64 aligned with the re-export.
+get_property(_darwin_foundation_flags TARGET swift_DarwinFoundation1 PROPERTY LINK_FLAGS)
+string(REPLACE "${CMAKE_SOURCE_DIR}/src/external/swift/libswiftDarwin.dylib"
+    "${DARLING_DARWIN_FOUNDATION_OVERLAY}"
+    _darwin_foundation_flags "${_darwin_foundation_flags}")
+set_property(TARGET swift_DarwinFoundation1 PROPERTY LINK_FLAGS "${_darwin_foundation_flags}")
 set_property(TARGET swift_DarwinFoundation1 APPEND_STRING PROPERTY LINK_FLAGS
     " -Wl,-reexport_library,${DARLING_DARWIN_FOUNDATION_OVERLAY}")
 set_property(TARGET swift_DarwinFoundation1 APPEND PROPERTY LINK_DEPENDS
