@@ -408,3 +408,16 @@ algorithms, Codable and order reversal. No algorithm or symbol alias is invented
 The carried unified patch has 26 lines versus 294 for a full override, counted
 including diff metadata; the smaller patch form follows this repository's rule.
 The helper checks the source pin and never changes the fetched checkout.
+
+### Language component initialization
+
+`Locale.init(languageCode:script:languageRegion:)` converts the vendored language
+component identifier's region separator to a BCP 47 hyphen before passing it to
+NSLocale. The legacy CF normalizer treats an underscore region as a locale
+preference and strips its default script (`zh-Hant_TW` becomes `zh_TW`). A
+language-region subtag (`zh-Hant-TW`) retains `Hant`, so the returned components
+match the round-three client. No Locale storage or legacy CF API changes.
+`tests/foundation-imports/test-native-locale.py` exercises the actual initializer
+and owned CF normalizer on Linux; the Darwin fixture still requires a guest run.
+This does not change CF's separate stripping of language-default scripts such
+as `Latn` in `en-Latn`; that older behavior remains outside this region fix.

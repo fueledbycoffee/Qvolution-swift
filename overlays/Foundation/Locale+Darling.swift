@@ -140,6 +140,9 @@ extension Locale.Language {
 @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
 extension Locale {
     public init(languageCode: LanguageCode? = nil, script: Script? = nil, languageRegion: Region? = nil) {
-        self.init(identifier: Language.Components(languageCode: languageCode, script: script, region: languageRegion).identifier)
+        let identifier = Language.Components(languageCode: languageCode, script: script, region: languageRegion).identifier
+        // NSLocale's legacy normalizer treats an underscore region as a locale
+        // preference and removes its default script. This is a language region.
+        self.init(identifier: identifier.replacingOccurrences(of: "_", with: "-"))
     }
 }
