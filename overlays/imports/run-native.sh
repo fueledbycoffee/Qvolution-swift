@@ -20,7 +20,7 @@ export DPREFIX=$W/p/isw-$(date +%s)-$$
 launcher=$W/parallel/stage41/build/src/startup/darling
 [[ -x $launcher && ! -u $launcher ]]
 run=$(mktemp -d "$lane/evidence/container-XXXXXX")
-shutdown() { "$launcher" shutdown >> "$run/shutdown.log" 2>&1; }
+shutdown() { DPREFIX="$DPREFIX" "$W/dashboard/qv-shutdown" "$launcher" >> "$run/shutdown.log" 2>&1; }
 finish() {
   local result=$? stopped guarded
   trap - EXIT
