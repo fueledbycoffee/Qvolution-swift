@@ -9,12 +9,12 @@ extension URL {
         throw NSError(domain: NSPOSIXErrorDomain, code: Int(ENOTSUP), userInfo: nil)!
     }
 
-    public init(resolvingBookmarkData data: Data, options: NSURLBookmarkResolutionOptions = [],
-                relativeTo url: URL? = nil, bookmarkDataIsStale: inout Bool) throws {
+    public init(resolvingBookmarkData data: __shared Data, options: NSURLBookmarkResolutionOptions = [],
+                relativeTo url: __shared URL? = nil, bookmarkDataIsStale: inout Bool) throws {
         throw NSError(domain: NSPOSIXErrorDomain, code: Int(ENOTSUP), userInfo: nil)!
     }
 
-    public init(resolvingAliasFileAt url: URL, options: NSURLBookmarkResolutionOptions = []) throws {
+    public init(resolvingAliasFileAt url: __shared URL, options: NSURLBookmarkResolutionOptions = []) throws {
         throw NSError(domain: NSPOSIXErrorDomain, code: Int(ENOTSUP), userInfo: nil)!
     }
 
