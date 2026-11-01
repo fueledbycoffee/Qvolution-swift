@@ -7,6 +7,7 @@ swift=$lane/superproject/src/external/swift
 [[ -d $lane/stage ]] || { echo 'Orchestrator must prepare the approved private Swift stage first' >&2; exit 2; }
 build=${QV_OVERLAY_BUILD:-$(cat "$lane/evidence/latest-build.path")}
 [[ -z $(git -C "$swift" status --porcelain) && -z $(git -C "$lane/superproject" status --porcelain) ]] || { echo 'Commit all source and pins before running' >&2; exit 2; }
+python3 "$(dirname "$0")/stage-ownership.py" "$lane"
 for module in UniformTypeIdentifiers AVFoundation CoreFoundation os Network; do
   cmp "$build/$module/libswift$module.dylib" "$lane/stage/usr/local/libexec/darling/usr/lib/swift/libswift$module.dylib"
 done

@@ -13,6 +13,7 @@ assert os.environ.get('QV_SLOT', '').startswith('build-')
 assert not subprocess.check_output(['git', '-C', str(lane / 'superproject'), 'status', '--porcelain'], text=True).strip()
 stage = lane / 'stage/usr/local/libexec/darling'
 assert stage.is_dir(), 'Orchestrator must prepare the approved stage and matching Swift runtime first'
+subprocess.run([sys.executable, str(Path(__file__).with_name('stage-ownership.py')), str(lane)], check=True)
 backup = Path(tempfile.mkdtemp(prefix='stage-before-overlays-', dir=lane / 'evidence'))
 baseline = lane.parents[1] / 'stage41b/usr/local/libexec/darling'
 for module in ['UniformTypeIdentifiers', 'AVFoundation', 'CoreFoundation', 'os', 'Network']:

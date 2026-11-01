@@ -11,6 +11,17 @@ in swiftc-darwin.py. No Apple SDK binary is an input. Each compile uses a fresh 
 replace the published path only after completion; prior successes are renamed
 and failed attempts are retained. Nothing is deleted.
 
+The approved private stage combines stage41b with the source-built payloads in
+`parallel/imp-foundation/prepared-private.json`, then these five overlays. This
+lane owns UniformTypeIdentifiers, AVFoundation, Network, CoreFoundation and os;
+its CF/os replace imp-foundation's copies. Foundation retains ownership of every
+other payload in its receipt, including Foundation and _DarwinFoundation1.
+`stage-ownership.py <lane>` verifies their hashes before install and boot;
+the runner separately compares all five installed overlays to the selected build.
+Never rerun the Foundation payload installer after installing these overlays.
+This precedence does not prove runtime ABI compatibility: the container gate is
+still required. The stage is reused, never copied or rebuilt by the runner.
+
 Built libraries replace bundled copies only when the option is enabled. The
 standalone build also has an install target with the normal Darling layout.
 Modules are x86_64 only; do not enable for an arm64 installation.
