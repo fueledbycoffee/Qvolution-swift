@@ -396,3 +396,15 @@ getter table. `CocoaError.swift` adds the framework branch of the same pin's
 queried optional resource getters from `FoundationEssentials/URL/URL.swift`,
 using the existing NSNumber accessor adaptation and date bridge. Missing values
 remain nil; these getters do not synthesize resource information.
+
+## Sort comparators
+
+The unchanged `FoundationEssentials/SortComparator.swift` at dbacc67779dc is
+compiled from the pinned fetch. `FoundationInternationalization/String/String+SortComparator.swift`
+is copied privately and patched to select its `FOUNDATION_FRAMEWORK` branches
+without globally enabling that conditional in the folded overlay. This uses
+Darling's existing NSString comparison/Locale bridge, including localized
+algorithms, Codable and order reversal. No algorithm or symbol alias is invented.
+The carried unified patch has 26 lines versus 294 for a full override, counted
+including diff metadata; the smaller patch form follows this repository's rule.
+The helper checks the source pin and never changes the fetched checkout.

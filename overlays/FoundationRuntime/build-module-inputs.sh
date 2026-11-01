@@ -116,6 +116,7 @@ while IFS= read -r relative; do
  [ -n "$relative" ] || continue
  write_source "$SWIFT_FOUNDATION_SRC/Sources/$relative" "$out/Foundation.sources"
 done < "$here/foundation-module-sources.list"
+write_source "$(sh "$here/prepare-sort-sources.sh" "$SWIFT_FOUNDATION_SRC" "$out")" "$out/Foundation.sources"
 emit_module Foundation "$out/Foundation.sources" -enable-library-evolution \
  -module-link-name swiftFoundation -autolink-force-load -package-name swift-foundation \
  -Xcc -DCMARK_GFM_STATIC_DEFINE -Xcc -I"$SWIFT_CMARK_SRC/src/include" \

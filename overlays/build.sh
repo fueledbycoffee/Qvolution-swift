@@ -342,6 +342,7 @@ JSON/BufferViewIterator.swift
 Locale/Locale+Language.swift
 LockedState.swift
 OutputBuffer.swift
+SortComparator.swift
 String/BidirectionalCollection.swift
 String/StringBlocks.swift
 UPSTREAM_FILES
@@ -387,6 +388,7 @@ UPSTREAM_INTL_FILES
 # the FormatStyle protocols (see README).
 foundation="$DARLING_ROOT/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation"
 # shellcheck disable=SC2086
+sh "$here/FoundationRuntime/prepare-sort-sources.sh" "$foundation_src" "$out" >> "$out/foundation-upstream.list"
 build_module Foundation "$here"/Foundation/*.swift --sources-from "$out/foundation-upstream.list" -- -package-name swift-foundation $cmark_flags --link -unexported_symbols_list "$out/unexported.txt" "$out/obj/_RopeModule.o" "$out/obj/InternalCollectionsUtilities.o" -filelist "$out/cmark-objects.list" "$foundation" "$corefoundation" "$DARLING_ROOT/usr/lib/libicucore.A.dylib" "$repo/Combine.framework/Versions/A/Combine" -lswiftDarwin -lswiftObjectiveC -lswiftCoreFoundation -lswiftDispatch
 
 # Build just Foundation for focused overlay changes without rebuilding or replacing

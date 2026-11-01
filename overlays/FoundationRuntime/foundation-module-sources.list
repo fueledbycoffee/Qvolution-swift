@@ -35,6 +35,7 @@ FoundationEssentials/JSON/BufferViewIterator.swift
 FoundationEssentials/Locale/Locale+Language.swift
 FoundationEssentials/LockedState.swift
 FoundationEssentials/OutputBuffer.swift
+FoundationEssentials/SortComparator.swift
 FoundationEssentials/String/BidirectionalCollection.swift
 FoundationEssentials/String/StringBlocks.swift
 FoundationInternationalization/BinaryFloatingPoint.swift
