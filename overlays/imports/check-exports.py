@@ -28,5 +28,7 @@ for recipe in recipes:
     row = dict(module=module, required=len(expected), satisfied=len(expected & actual),
                missing=missing, negative_controls='pass', image=str(image))
     rows.append(row)
+if not rows:
+    raise SystemExit('No matching non-empty demand sets were checked')
 print(json.dumps(rows, indent=2))
 raise SystemExit(1 if any(row['missing'] for row in rows) else 0)

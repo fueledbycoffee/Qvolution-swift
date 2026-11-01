@@ -1,0 +1,5 @@
+--- a/NWListener.swift
++++ b/NWListener.swift
+@@ -153,0 +154,2 @@
++
++	public var state: State { _state }
