@@ -137,7 +137,25 @@ if(DARLING_SWIFT_SOURCE_RUNTIME)
 		DEPENDS ${_srt_overlay_outputs} ${_srt_overlay_sources}
 		COMMENT "Building x86_64 CryptoKit from source"
 		VERBATIM USES_TERMINAL)
-	add_custom_target(swift_source_runtime ALL DEPENDS ${_srt_overlay_outputs} "${_srt_cryptokit}/CryptoKit")
+	# Swift 6 toolchain SDKs split Darwin into _DarwinFoundation1..3; binaries built against them
+	# bind Darwin-module symbols (e.g. $s6Darwin5errnos5Int32Vvg) to this image. It carries no code
+	# and re-exports the rebuilt Darwin overlay, like libswift_errno above re-exports Darwin.
+	# Install name and compatibility version 1.0.0 from CotEditor 7.1.3's load command (rung 5).
+	set(_srt_darwinfoundation1 "${_srt_overlays}/libswift_DarwinFoundation1.dylib")
+	add_custom_command(OUTPUT "${_srt_darwinfoundation1}"
+		COMMAND ${_srt_ld} -dylib -arch x86_64 -platform_version macos 26.0 26.0
+			-syslibroot ${DARLING_SWIFT_LINK_ROOT}
+			-install_name /usr/lib/swift/libswift_DarwinFoundation1.dylib
+			-compatibility_version 1.0.0 -current_version 1.0.0
+			-reexport_library ${_srt_overlays}/libswiftDarwin.dylib
+			${DARLING_SWIFT_LINK_ROOT}/usr/lib/libSystem.B.dylib
+			-o "${_srt_darwinfoundation1}"
+		DEPENDS ${_srt_overlay_outputs}
+		COMMENT "Linking x86_64 libswift_DarwinFoundation1 re-export"
+		VERBATIM)
+	add_custom_target(swift_source_runtime ALL
+		DEPENDS ${_srt_overlay_outputs} "${_srt_cryptokit}/CryptoKit" "${_srt_darwinfoundation1}")
+	install(FILES "${_srt_darwinfoundation1}" DESTINATION libexec/darling/usr/lib/swift ${_srt_component})
 	set(SWIFT_SOURCE_RUNTIME_DIR "${_srt_overlays}" CACHE INTERNAL "")
 	set(SWIFT_SOURCE_RUNTIME_CRYPTOKIT "${_srt_cryptokit}/CryptoKit" CACHE INTERNAL "")
 	foreach(_module ${SWIFT_SOURCE_RUNTIME_OVERLAYS})
