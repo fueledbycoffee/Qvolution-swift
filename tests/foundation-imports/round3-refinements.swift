@@ -8,7 +8,7 @@ let localized: String.LocalizationValue = "Count: \(12, format: .number)"
 precondition(String(localized: localized).contains("12"))
 final class Target: NSObject { var value = 0 }
 let target = Target()
-let undo = UndoManager()
+let undo = NSUndoManager()
 undo.beginUndoGrouping()
 undo.registerUndo(withTarget: target) { $0.value = 1 }
 undo.endUndoGrouping()

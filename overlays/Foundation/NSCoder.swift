@@ -39,3 +39,10 @@ extension NSCoder {
     return decode(self, selector, classesAsNSObjects, key as NSString)
   }
 }
+
+extension NSCoder {
+  public func decodeArrayOfObjects<T>(ofClass cls: T.Type, forKey key: String) -> [T]?
+  where T: NSObject, T: NSSecureCoding {
+    return decodeObject(of: [NSArray.self, cls], forKey: key) as? [T]
+  }
+}

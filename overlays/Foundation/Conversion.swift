@@ -428,14 +428,15 @@ extension BigString {
 
 @available(macOS 12, iOS 15, tvOS 15, watchOS 8, *)
 extension Range where Bound == AttributedString.Index {
-#if FOUNDATION_FRAMEWORK
+#if true // Darling has NSRange and the published rope-backed conversion.
     public init?<S: AttributedStringProtocol>(_ range: NSRange, in string: S) {
         // FIXME: This can return indices addressing trailing surrogates, which isn't a thing
         // FIXME: AttributedString is normally prepared to handle.
         // FIXME: Consider rounding everything down to the nearest scalar boundary.
         guard range.location != NSNotFound else { return nil }
         guard range.location >= 0, range.length >= 0 else { return nil }
-        let endOffset = range.location + range.length
+        let (endOffset, overflow) = range.location.addingReportingOverflow(range.length)
+        guard !overflow else { return nil }
         let bstrBounds = Range<BigString.Index>(uncheckedBounds: (string.startIndex._value, string.endIndex._value))
         let bstr = string.__guts.string[bstrBounds]
         guard endOffset <= bstr.utf16.count else { return nil }

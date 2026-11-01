@@ -148,6 +148,11 @@ extension String {
                 _key += literal.replacingOccurrences(of: "%", with: "%%")
             }
 
+            public mutating func appendInterpolation<Value, Style: FormatStyle>(_ value: Value, format: Style)
+            where Style.FormatInput == Value, Style.FormatOutput: StringProtocol {
+                appendInterpolation(String(format.format(value)))
+            }
+
             public mutating func appendInterpolation(_ string: String) {
                 _key += "%@"
                 _arguments.append(string)
