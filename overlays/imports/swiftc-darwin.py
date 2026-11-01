@@ -55,8 +55,6 @@ def run(cmd, verbose):
 
 def symlink(target, link):
     link = Path(link)
-    if link.is_symlink() or link.exists():
-        link.unlink()
     link.symlink_to(target)
 
 
@@ -86,10 +84,9 @@ def main():
     name = a.module_name
     out = a.out.resolve()
     obj_dir = out / 'obj'
-    import shutil
-    if out.exists():
-        shutil.rmtree(out)
-    obj_dir.mkdir(parents=True, exist_ok=True)
+    # A fresh attempt keeps previous products and module caches as evidence.
+    out.mkdir(parents=True, exist_ok=False)
+    obj_dir.mkdir()
     if a.framework:
         fw = out / f'{name}.framework'
         ver = fw / 'Versions/A'

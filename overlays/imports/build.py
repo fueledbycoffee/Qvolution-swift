@@ -10,14 +10,14 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
+import uuid
 from pathlib import Path
 
 only_dependencies = sys.argv[1] == '--dependencies'
 recipe = Path(sys.argv[2] if only_dependencies else sys.argv[1]).resolve()
 if not only_dependencies:
     output = Path(sys.argv[2]).resolve()
-    if output.exists():
-        shutil.rmtree(output)
 spec = json.loads(recipe.read_text())
 module = recipe.parent.name
 w = Path('/home/sean/Documents/Codex/Projects/Qvolution-work')
@@ -47,11 +47,12 @@ if only_dependencies:
     print(';'.join(str(path) for path in sources + originals + patches))
     raise SystemExit(0)
 
-output = Path(sys.argv[2]).resolve()
+destination = Path(sys.argv[2]).resolve()
+destination.parent.mkdir(parents=True, exist_ok=True)
+attempt = Path(tempfile.mkdtemp(prefix=destination.name + '-attempt-', dir=destination.parent))
+output = attempt / 'product'
 if upstream:
     adapted = output.with_name(output.name + '-upstream')
-    if adapted.exists():
-        shutil.rmtree(adapted)
     adapted.mkdir(parents=True)
     for source in originals:
         shutil.copyfile(source, adapted / source.name)
@@ -67,3 +68,8 @@ args += [replace(value) for value in spec.get('args', [])]
 args += [str(path) for path in sources]
 subprocess.run(args, check=True)
 (output / ('lib' + module + '.dylib')).rename(output / ('libswift' + module + '.dylib'))
+
+# Publish only a completed image; keep earlier successes and failed attempts.
+if destination.exists() or destination.is_symlink():
+    destination.rename(destination.with_name(destination.name + '-previous-' + uuid.uuid4().hex))
+output.rename(destination)

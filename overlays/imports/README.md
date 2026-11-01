@@ -7,8 +7,9 @@ Build under qv-slot build with ninja -j6. No network access or installation occu
 The driver adapts catalyst/tools/swiftc-darwin: private Swift 6.3.3 compiler,
 source-built Darwin resource/module inputs, source SDK, Stage41b dependency libraries
 and ld64. All inputs can be overridden with the environment variables documented
-in swiftc-darwin.py. No Apple SDK binary is an input. Delete output/module-cache
-before compiling, so a failed rebuild cannot pass by leaving an older image.
+in swiftc-darwin.py. No Apple SDK binary is an input. Each compile uses a fresh attempt directory and module cache. Successful outputs
+replace the published path only after completion; prior successes are renamed
+and failed attempts are retained. Nothing is deleted.
 
 Built libraries replace bundled copies only when the option is enabled. The
 standalone build also has an install target with the normal Darling layout.
