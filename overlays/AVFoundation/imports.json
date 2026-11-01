@@ -1,0 +1,20 @@
+{
+  "sources": [
+    "AVFoundation.swift"
+  ],
+  "args": [
+    "-I",
+    "@HERE@/shims/include",
+    "--modulemap",
+    "@HERE@/shims/module.modulemap",
+    "--modulemap",
+    "@HERE@/shims/coremedia.modulemap",
+    "--link=@ROOT@/System/Library/Frameworks/AVFoundation.framework/Versions/A/AVFoundation",
+    "--link=@ROOT@/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation",
+    "--link=-lswiftCoreMedia",
+    "--link=-lswiftFoundation",
+    "--link=-lswiftObjectiveC",
+    "--link=-lswiftDarwin",
+    "--link=-lswift_Concurrency"
+  ]
+}

@@ -1,0 +1,4 @@
+module _DarlingAVFoundationShims {
+  header "DarlingAVFoundationShims.h"
+  export *
+}
