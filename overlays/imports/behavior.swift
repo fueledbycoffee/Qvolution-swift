@@ -43,6 +43,7 @@ func unsupported(_ operation: () async throws -> Void) async {
         await unsupported { _ = try await track.load(.naturalSize, .nominalFrameRate) }
         await unsupported { _ = try await track.load(.naturalSize, .nominalFrameRate, .segments) }
 
+        print("BEGIN listener-lifecycle"); fflush(nil)
         let listener = try NWListener(using: .tcp)
         precondition(listener.state == .setup)
         let completed = DispatchSemaphore(value: 0)
@@ -54,6 +55,23 @@ func unsupported(_ operation: () async throws -> Void) async {
         listener.cancel()
         precondition(completed.wait(timeout: .now() + 5) == .success)
         precondition(listener.state == .cancelled)
+
+        let unsupportedListener = try NWListener(using: .tcp, on: NWEndpoint.Port(rawValue: 12345)!)
+        let unsupportedStart = DispatchSemaphore(value: 0)
+        let unsupportedCancel = DispatchSemaphore(value: 0)
+        unsupportedListener.stateUpdateHandler = { state in
+            precondition(unsupportedListener.state == state)
+            precondition(state != .ready)
+            if state == .failed(.posix(.ENOTSUP)) { unsupportedStart.signal() }
+            if state == .cancelled { unsupportedCancel.signal() }
+        }
+        unsupportedListener.start(queue: DispatchQueue(label: "overlay-unsupported-listener-test"))
+        precondition(unsupportedStart.wait(timeout: .now() + 5) == .success)
+        precondition(unsupportedListener.state == .failed(.posix(.ENOTSUP)))
+        precondition(unsupportedListener.port == nil)
+        unsupportedListener.cancel()
+        precondition(unsupportedCancel.wait(timeout: .now() + 5) == .success)
+        print("PASS listener lifecycle and unsupported start")
         print("RESULT swift-overlay-behavior failures=0")
     }
 }
