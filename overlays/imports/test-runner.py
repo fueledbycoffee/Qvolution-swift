@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Run the production shell harness with a retrying fake container, never Darling."""
 from pathlib import Path
+import hashlib
+import json
 import os
 import shutil
 import subprocess
@@ -37,6 +39,15 @@ for mode, expected in [('success', 0), ('behavior-fails', 41), ('home-changed', 
         exports = lane / 'superproject/src/external/swift/overlays' / module / 'imports.exports'
         exports.parent.mkdir(parents=True)
         exports.write_text('mock_symbol\n')
+    dependency = lane / 'stage/usr/local/libexec/darling/usr/lib/swift/libswiftFoundation.dylib'
+    dependency.write_text('mock foundation')
+    receipt = workspace / 'parallel/imp-foundation/prepared-private.json'
+    receipt.parent.mkdir(parents=True)
+    receipt.write_text(json.dumps({'payload_sha256': {
+        'usr/lib/swift/libswiftFoundation.dylib': hashlib.sha256(dependency.read_bytes()).hexdigest(),
+        'usr/lib/swift/libswiftCoreFoundation.dylib': 'overridden',
+        'usr/lib/swift/libswiftos.dylib': 'overridden',
+    }}))
     for name in ['load-exports', 'OverlayBehavior']:
         script(build / name, 'exit 0\n')
     (build / 'behavior.path').write_text(str(build / 'OverlayBehavior') + '\n')
