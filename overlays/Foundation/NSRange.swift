@@ -244,3 +244,24 @@ extension NSRange : Codable {
         try container.encode(self.length)
     }
 }
+
+extension NSRange: _ObjectiveCBridgeable {
+  public func _bridgeToObjectiveC() -> NSValue { return NSValue(range: self) }
+
+  public static func _forceBridgeFromObjectiveC(_ source: NSValue, result: inout NSRange?) {
+    precondition(_conditionallyBridgeFromObjectiveC(source, result: &result), "NSValue does not contain an NSRange")
+  }
+
+  public static func _conditionallyBridgeFromObjectiveC(_ source: NSValue, result: inout NSRange?) -> Bool {
+    let rangeType: NSValue = NSValue(range: NSRange(location: 0, length: 0))
+    guard strcmp(source.objCType(), rangeType.objCType()) == 0 else { result = nil; return false }
+    result = source.rangeValue()
+    return true
+  }
+
+  public static func _unconditionallyBridgeFromObjectiveC(_ source: NSValue?) -> NSRange {
+    var result: NSRange?
+    _forceBridgeFromObjectiveC(source!, result: &result)
+    return result!
+  }
+}

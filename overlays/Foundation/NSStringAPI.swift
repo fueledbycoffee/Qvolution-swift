@@ -412,3 +412,84 @@ extension StringProtocol {
     try _ns.write(to: url, atomically: useAuxiliaryFile, encoding: enc.rawValue)
   }
 }
+
+extension String {
+  public init?<S: Sequence>(bytes: __shared S, encoding: Encoding) where S.Element == UInt8 {
+    self.init(data: Data(bytes), encoding: encoding)
+  }
+
+  public init(utf16CodeUnits: UnsafePointer<UInt16>, count: Int) {
+    self.init(decoding: UnsafeBufferPointer(start: utf16CodeUnits, count: count), as: UTF16.self)
+  }
+
+  public init(contentsOf url: __shared URL, encoding: Encoding) throws {
+    self = try NSString(contentsOf: url, encoding: encoding.rawValue) as String
+  }
+
+  public static func localizedName(of encoding: Encoding) -> String {
+    return NSString.localizedName(ofStringEncoding: encoding.rawValue)
+  }
+
+  public static var availableStringEncodings: [Encoding] {
+    guard let encodings = NSString.availableStringEncodings() else { return [] }
+    var result: [Encoding] = []
+    var offset = 0
+    while encodings[offset] != 0 {
+      result.append(Encoding(rawValue: encodings[offset]))
+      offset += 1
+    }
+    return result
+  }
+}
+
+extension StringProtocol {
+  public func lengthOfBytes(using encoding: String.Encoding) -> Int {
+    return _ns.lengthOfBytes(usingEncoding: encoding.rawValue)
+  }
+
+  public func canBeConverted(to encoding: String.Encoding) -> Bool {
+    return _ns.canBeConverted(toEncoding: encoding.rawValue)
+  }
+
+  public var decomposedStringWithCanonicalMapping: String {
+    return _ns.decomposedStringWithCanonicalMapping()
+  }
+
+  public var precomposedStringWithCanonicalMapping: String {
+    return _ns.precomposedStringWithCanonicalMapping()
+  }
+
+  public var precomposedStringWithCompatibilityMapping: String {
+    return _ns.precomposedStringWithCompatibilityMapping()
+  }
+
+  public func folding(options: String.CompareOptions, locale: Locale?) -> String {
+    return _ns.folding(options: options, locale: locale)
+  }
+
+  public func enumerateLines(invoking body: @escaping (String, inout Bool) -> Void) {
+    _ns.enumerateLines { line, stop in
+      var stopped = false
+      body(line!, &stopped)
+      stop?.pointee = ObjCBool(stopped)
+    }
+  }
+
+  public func getLineStart<R: RangeExpression>(
+    _ start: UnsafeMutablePointer<String.Index>,
+    end: UnsafeMutablePointer<String.Index>,
+    contentsEnd: UnsafeMutablePointer<String.Index>, for range: R
+  ) where R.Bound == String.Index {
+    let bounds = (self as? Substring).map { range.relative(to: $0) } ?? range.relative(to: String(self))
+    var first = 0, last = 0, contents = 0
+    _ns.getLineStart(&first, end: &last, contentsEnd: &contents, for: _nsRange(bounds))
+    start.pointee = _index(utf16Offset: first)
+    end.pointee = _index(utf16Offset: last)
+    contentsEnd.pointee = _index(utf16Offset: contents)
+  }
+
+  public func lineRange<R: RangeExpression>(for range: R) -> Range<String.Index> where R.Bound == String.Index {
+    let bounds = (self as? Substring).map { range.relative(to: $0) } ?? range.relative(to: String(self))
+    return _range(_ns.lineRange(for: _nsRange(bounds)))!
+  }
+}
