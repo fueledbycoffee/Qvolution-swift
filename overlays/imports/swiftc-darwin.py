@@ -63,6 +63,7 @@ def main():
     ap.add_argument('--module-name', required=True)
     ap.add_argument('--install-name', required=True)
     ap.add_argument('--out', required=True, type=Path)
+    ap.add_argument('--executable', action='store_true', help='link an authored @main behavior executable')
     ap.add_argument('--framework', action='store_true', help='emit NAME.framework instead of libNAME.dylib')
     ap.add_argument('--modulemap', action='append', default=[], help='extra Clang module map (repeatable)')
     ap.add_argument('-I', dest='incs', action='append', default=[], help='Swift module and Clang include dir')
@@ -94,7 +95,7 @@ def main():
         image = ver / name
     else:
         mod_dir = out / f'{name}.swiftmodule'
-        image = out / f'lib{name}.dylib'
+        image = out / (name if a.executable else f'lib{name}.dylib')
     mod_dir.mkdir(parents=True, exist_ok=True)
     obj = obj_dir / f'{name}.o'
 
@@ -121,13 +122,15 @@ def main():
     swift += a.swift_flag
     run(swift, a.verbose)
 
-    ld = [LD, '-dylib', '-arch', ARCH, '-platform_version', 'macos', '26.0', '26.0',
+    ld = [LD, '-arch', ARCH, '-platform_version', 'macos', '26.0', '26.0',
           '-syslibroot', SDK, '-syslibroot', ROOT,
-          '-install_name', a.install_name,
-          '-compatibility_version', a.compat_version, '-current_version', a.current_version,
           '-L', ROOT / 'usr/lib/swift',
           '-F', ROOT / 'System/Library/Frameworks',
           '-F', ROOT / 'System/iOSSupport/System/Library/Frameworks']
+    if a.executable:
+        ld += [W / 'parallel/stage41/build/src/external/csu/CMakeFiles/crt1.10.6.dir/start.S.o']
+    else:
+        ld += ['-dylib', '-install_name', a.install_name, '-compatibility_version', a.compat_version, '-current_version', a.current_version]
     for f in a.fws:
         ld += ['-F', Path(f).resolve()]
     ld += [obj, ROOT / 'usr/lib/libSystem.B.dylib', ROOT / 'usr/lib/libobjc.A.dylib', '-lswiftCore']
