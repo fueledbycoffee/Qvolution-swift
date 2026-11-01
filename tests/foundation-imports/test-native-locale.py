@@ -31,6 +31,10 @@ def body(source, marker):
 
 cf = (a.corefoundation/'CFLocaleIdentifier.c').read_text()
 cf = cf[cf.index('// Max byte length'):cf.index('// CFLocaleCreateCanonicalLocaleIdentifierFromScriptManagerCodes')]
+# The unused ScriptManager conversion table needs legacy platform typedefs.
+start = cf.rindex('#if', 0, cf.index('struct LocaleToLegacyCodes'))
+end = cf.index('#endif', start) + len('#endif')
+cf = cf[:start] + cf[end:]
 preamble = r'''
 #include <stdbool.h>
 #include <stdint.h>
@@ -101,4 +105,5 @@ for name in ('ICULegacyKey','ICUCLDRKey'):
 swift += (repo/'tests/foundation-imports/locale-components.swift').read_text()
 (a.out/'main.swift').write_text(swift)
 subprocess.run([str(a.toolchain/'bin/swiftc'),'-g','-Onone','-package-name','swift-foundation',
+               '-module-cache-path',str(a.out/'module-cache'),
                str(a.out/'main.swift'),str(a.out/'locale.o'),'-licuuc','-o',str(a.out/'locale-components')],check=True)
