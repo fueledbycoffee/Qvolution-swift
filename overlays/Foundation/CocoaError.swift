@@ -92,3 +92,14 @@ extension CocoaError.Code {
   @available(macOS, introduced: 10.11) @available(iOS, introduced: 9.0)
   public static var coderReadCorrupt: CocoaError.Code { return CocoaError.Code(rawValue: 4864) }
 }
+
+// swift-foundation dbacc67779dc, Error/CocoaError.swift (framework branch).
+extension CocoaError {
+  public static func error(_ code: CocoaError.Code,
+                           userInfo: [AnyHashable: Any]? = nil,
+                           url: URL? = nil) -> Error {
+    var info: [String: Any] = userInfo as? [String: Any] ?? [:]
+    if let url = url { info[NSURLErrorKey] = url }
+    return NSError(domain: NSCocoaErrorDomain, code: code.rawValue, userInfo: info)
+  }
+}

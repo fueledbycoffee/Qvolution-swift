@@ -385,3 +385,14 @@ The typed C shims retain Catalyst's documented prototypes and flagged guessed
 enumerator values; no numeric WebSocket values or fabricated opaque handles
 are introduced. Patches and originals are both Ninja dependencies. No Network
 transport behavior is claimed: Darling's C networking backend is still stubbed.
+## Import-review error and URL resource APIs
+
+`Foundation/NSError.swift` additionally adapts the `FOUNDATION_FRAMEWORK` POSIXError
+and POSIXErrorCode conformance from swift-foundation dbacc67779dc
+`FoundationEssentials/Error/ErrorCodes+POSIX.swift`; NSError.domain is a method
+in Darling's Clang import. Only that struct/conformance is carried, not the code
+getter table. `CocoaError.swift` adds the framework branch of the same pin's
+`Error/CocoaError.swift` error factory. `URLResourceValues.swift` adds the six
+queried optional resource getters from `FoundationEssentials/URL/URL.swift`,
+using the existing NSNumber accessor adaptation and date bridge. Missing values
+remain nil; these getters do not synthesize resource information.
