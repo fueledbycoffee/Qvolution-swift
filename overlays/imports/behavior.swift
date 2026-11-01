@@ -11,7 +11,7 @@ func unsupported(_ operation: () async throws -> Void) async {
         fatalError("unsupported load succeeded")
     } catch {
         let error = error as NSError
-        precondition(error.domain == NSCocoaErrorDomain && error.code == NSFeatureUnsupportedError)
+        precondition(error.domain() == NSCocoaErrorDomain && error.code() == NSFeatureUnsupportedError)
     }
 }
 

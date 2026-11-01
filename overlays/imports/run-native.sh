@@ -10,7 +10,8 @@ build=${QV_OVERLAY_BUILD:-$(cat "$lane/evidence/latest-build.path")}
 for module in UniformTypeIdentifiers AVFoundation CoreFoundation os Network; do
   cmp "$build/$module/libswift$module.dylib" "$lane/stage/usr/local/libexec/darling/usr/lib/swift/libswift$module.dylib"
 done
-[[ -x $build/load-exports && -x $build/Behavior/OverlayBehavior ]]
+behavior=$(cat "$build/behavior.path")
+[[ -x $build/load-exports && -x $behavior ]]
 if [[ ${1-} != --guest-slot ]]; then exec "$W/dashboard/qv-slot" guest bash "$0" --guest-slot; fi
 for name in ${!DYLD_@}; do unset "$name"; done
 export DARLING_NONROOT=1 DARLING_INSTALL_PREFIX=$lane/stage/usr/local
@@ -43,7 +44,7 @@ guest() {
 guest initialize /usr/bin/true
 shutdown
 mkdir -p "$DPREFIX/Applications/OverlayImports"
-cp -a "$build/load-exports" "$build/Behavior/OverlayBehavior" "$DPREFIX/Applications/OverlayImports/"
+cp -a "$build/load-exports" "$behavior" "$DPREFIX/Applications/OverlayImports/"
 args=()
 for module in UniformTypeIdentifiers AVFoundation CoreFoundation os Network; do
   cp -a "$swift/overlays/$module/imports.exports" "$DPREFIX/Applications/OverlayImports/$module.exports"

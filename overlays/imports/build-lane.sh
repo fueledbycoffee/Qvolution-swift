@@ -24,22 +24,7 @@ ld=$W/parallel/stage41/build/src/external/cctools-port/cctools/ld64/src/x86_64-a
 "$ld" -arch x86_64 -platform_version macos 26.0 26.0 -syslibroot "$sdk" -syslibroot "$root" \
   "$W/parallel/stage41/build/src/external/csu/CMakeFiles/crt1.10.6.dir/start.S.o" \
   "$build/load-exports.o" "$root/usr/lib/libSystem.B.dylib" -o "$build/load-exports"
-imp=$lane/superproject/src/external/swift/overlays/imports
-args=()
-for module in UniformTypeIdentifiers AVFoundation Network; do
-  args+=(-I "$build/$module" "--link=$build/$module/libswift$module.dylib")
-done
-python3 "$imp/swiftc-darwin.py" --module-name OverlayBehavior --install-name unused \
-  --executable --out "$build/Behavior" "${args[@]}" \
-  --modulemap "$lane/superproject/src/external/swift/overlays/AVFoundation/shims/module.modulemap" \
-  --modulemap "$lane/superproject/src/external/swift/overlays/UniformTypeIdentifiers/shims/module.modulemap" \
-  --modulemap "$lane/superproject/src/external/swift/overlays/Network/shims/module.modulemap" \
-  -I "$lane/superproject/src/external/swift/overlays/AVFoundation/shims/include" \
-  -I "$lane/superproject/src/external/swift/overlays/Network/shims" \
-  --link="$root/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation" \
-  --link="$root/System/Library/Frameworks/AVFoundation.framework/Versions/A/AVFoundation" \
-  --link=-lswiftFoundation --link=-lswiftDispatch --link=-lswiftDarwin --link=-lswift_Concurrency \
-  "$imp/behavior.swift"
+bash "$lane/superproject/src/external/swift/overlays/imports/build-behavior.sh" "$build"
 python3 "$lane/superproject/src/external/swift/overlays/imports/check-exports.py" "$build" > "$build/exports.json"
 printf '%s\n' "$build" > "$lane/evidence/latest-build.path"
 printf 'PASS build and exports: %s\n' "$build"
