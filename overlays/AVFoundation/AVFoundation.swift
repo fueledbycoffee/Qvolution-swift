@@ -190,14 +190,9 @@ extension AVPartialAsyncProperty where Root: AVAssetTrack {
 extension AVAsynchronousKeyValueLoading {
     public func load<T>(_ property: AVAsyncProperty<Self, T>,
                         isolation: isolated (any Actor)? = #isolation) async throws -> T {
-        switch status(of: property) {
-        case .loaded(let value): return value
-        case .failed(let error): throw error
-        case .notYetLoaded, .loading:
-            // Darling's AVAsset backend cannot complete asynchronous loads yet.
-            // Fail explicitly instead of waiting for a no-op completion handler.
-            throw NSError(domain: NSCocoaErrorDomain, code: NSFeatureUnsupportedError)
-        }
+        // The Darling backend forwards unknown status selectors with a void
+        // signature. Do not query it or perform KVC until typed loading exists.
+        throw NSError(domain: NSCocoaErrorDomain, code: NSFeatureUnsupportedError)
     }
 
     public func load<A, B, each C>(_ first: AVAsyncProperty<Self, A>,
