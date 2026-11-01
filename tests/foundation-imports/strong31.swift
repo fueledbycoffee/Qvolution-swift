@@ -1,6 +1,7 @@
 import Foundation
 import Combine
 import Darwin
+import CoreFoundation
 
 func progress(_ label: String) {
     print("CHECK " + label)
@@ -130,8 +131,26 @@ progress("do { try handle.write(contentsOf: Data()); preconditionFailure(\"empty
 do { try handle.write(contentsOf: Data()); preconditionFailure("empty closed write succeeded") } catch {}
 progress("do { _ = try handle.read(upToCount: 1); preconditionFailure(\"closed read succeeded\") } catch {}")
 do { _ = try handle.read(upToCount: 1); preconditionFailure("closed read succeeded") } catch {}
-progress("check(\"café\".applyingTransform(.stripDiacritics, reverse: false) == \"cafe\", \"string transform\")")
-check("café".applyingTransform(.stripDiacritics, reverse: false) == "cafe", "string transform")
+progress("strip diacritics cases")
+func strip(_ s: String) -> String? { s.applyingTransform(.stripDiacritics, reverse: false) }
+check(strip("café") == "cafe", "string transform")
+check(strip("cafe\u{301}") == "cafe", "strip decomposed diacritic")
+check(strip("Ünïcödé Åström ñ") == "Unicode Astrom n", "strip several diacritics")
+check(strip("") == "", "strip empty string")
+// Marks that are not diacritics survive, as does the grapheme-link rule's complement.
+check(strip("\u{2764}\u{FE0F}") == "\u{2764}\u{FE0F}", "emoji variation selector kept")
+check(strip("a\u{34F}") == "a\u{34F}", "combining grapheme joiner kept")
+check(strip("\u{915}\u{941}") == "\u{915}\u{941}", "devanagari vowel sign kept")
+check(strip("\u{915}\u{94D}") == "\u{915}\u{94D}", "devanagari virama kept")
+check(strip("\u{2260}") == "\u{2260}", "long solidus overlay kept")
+check(strip("\u{304B}\u{3099}") == "\u{304C}", "kana voiced mark kept and composed")
+// Transforms that do not take the strip-diacritics shortcut go through CFStringTransform and its
+// in/out range: a nil range is written through on success. Empty and supplementary-scalar inputs.
+progress("CFStringTransform range cases")
+let toLatin = NSStringTransform(rawValue: kCFStringTransformToLatin as String)
+check("καφέ".applyingTransform(toLatin, reverse: false) == "kaphé", "transform range greek")
+check("".applyingTransform(toLatin, reverse: false) == "", "transform range empty")
+check("\u{1F600}καφέ".applyingTransform(toLatin, reverse: false) == "\u{1F600}kaphé", "transform range supplementary")
 progress("do { _ = try url.bookmarkData(); preconditionFailure(\"unsupported bookmark succeeded\") } catch {}")
 do { _ = try url.bookmarkData(); preconditionFailure("unsupported bookmark succeeded") } catch {}
 progress("var stale = false")
