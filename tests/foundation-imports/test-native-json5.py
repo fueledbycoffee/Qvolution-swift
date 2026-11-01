@@ -5,6 +5,7 @@ from pathlib import Path
 p=argparse.ArgumentParser()
 p.add_argument('--out',type=Path,required=True)
 p.add_argument('--revision')
+p.add_argument('--build-only',action='store_true')
 a=p.parse_args();a.out.mkdir(parents=True,exist_ok=False)
 repo=Path(__file__).resolve().parents[2]
 name='overlays/Foundation/JSONSerialization+Swift.swift'
@@ -16,4 +17,4 @@ s+='\nlet root = CommandLine.arguments[1]\nlet items = FileManager.default.enume
 tool=Path('/home/sean/Documents/Codex/Projects/Qvolution-work/toolchains/swift-6.3.3-linux-x64/compiler/usr/bin/swiftc')
 subprocess.run([str(tool),'-module-cache-path',str(a.out/'cache'),str(a.out/'main.swift'),'-o',str(a.out/'json5')],check=True)
 corpus=Path('/home/sean/Documents/Codex/Projects/Qvolution-work/parallel/cryptokit-x64-bootstrap/foundation-source/Tests/FoundationEssentialsTests/Resources/JSON5/spec')
-subprocess.run([str(a.out/'json5'),str(corpus)],check=True)
+if not a.build_only: subprocess.run([str(a.out/'json5'),str(corpus)],check=True)

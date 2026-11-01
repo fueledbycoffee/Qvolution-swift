@@ -1050,6 +1050,9 @@ private class __JSONReferencingEncoder : __JSONEncoder {
 // mangled name for Foundation.__JSONDecoder.
 @_objcRuntimeName(_TtC10Foundation13__JSONDecoder)
 open class JSONDecoder {
+    /// Accept JSON5 syntax when enabled; strict JSON remains the default.
+    open var allowsJSON5: Bool = false
+
     // MARK: Options
 
     /// The strategy to use for decoding `Date` values.
@@ -1214,7 +1217,7 @@ open class JSONDecoder {
     open func decode<T : Decodable>(_ type: T.Type, from data: Data) throws -> T {
         let topLevel: Any
         do {
-           topLevel = try _JSONSerialization.object(with: data)
+           topLevel = try _JSONSerialization.object(with: data, allowsJSON5: allowsJSON5)
         } catch {
             // JSONSerialization reports NSCocoaErrorDomain code 3840 (NSPropertyListReadCorruptError) on macOS.
             let underlying = NSError(domain: "NSCocoaErrorDomain", code: 3840, userInfo: ["NSDebugDescription": "\(error)"])! as Error
