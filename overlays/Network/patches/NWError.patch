@@ -1,0 +1,5 @@
+--- a/NWError.swift
++++ b/NWError.swift
+@@ -14 +14 @@
+-import Security
++// Darling: no Security Clang module; SecCopyErrorMessageString comes from <Security/SecBase.h> through shims/DarlingNetwork.h.

@@ -355,3 +355,33 @@ fetched. Measured on the tree of #33, which is master plus a CryptoKit framework
 of this branch's changes: built at two different paths, `libswiftFoundation.dylib` differs by 21
 bytes and `libswiftDispatch.dylib` by 27, while `Darwin`, `ObjectiveC`, `CoreFoundation`, `os`,
 `XPC`, `CoreGraphics`, `AppKit` and `CryptoKit` are all bit-identical.
+
+## x86_64 Network import overlay
+
+`Network/imports.json` pins Apple's public Swift source to
+`d66af16429153d81a8f5791a6da9d9b3d4b61bc7` (swift-5.2.2-RELEASE), with
+`SWIFT_NETWORK_SOURCE` selecting an offline checkout at that exact revision.
+A future online tag check is `git ls-remote https://github.com/apple/swift.git
+refs/tags/swift-5.2.2-RELEASE^{}`; it was not run in this network-disabled lane.
+The existing cached checkout supplies the pin. No pristine upstream Swift
+files are vendored by this overlay, and no fetched checkout is modified.
+`imports/build.py` copies the source inputs into a fresh build directory and
+applies these zero-fuzz patches before compiling with private Swift 6.3.3:
+
+| File | Patch lines carried | Full file lines | Change |
+| --- | ---: | ---: | --- |
+| NWError.swift | 5 | 73 | Import Security declarations through the existing Darling shim |
+| NWListener.swift | 5 | 323 | Expose the existing cached listener state |
+| NWPath.swift | 19 | 318 | Add Catalyst's prohibited-interface monitor initializer |
+
+Counts include every patch line, including metadata, versus every full-file
+line. The other nine upstream inputs are copied unchanged (including their
+original whitespace). New `NWBrowser.swift` and `NWPath+Darling.swift` reuse
+Catalyst's documented clean-room additions. `NWProtocolWebSocket.swift` is
+this lane's GUESS-grade demanded subset with explicit unsupported traps;
+`Network/PROVENANCE.md` records its limitations and source ladder.
+
+The typed C shims retain Catalyst's documented prototypes and flagged guessed
+enumerator values; no numeric WebSocket values or fabricated opaque handles
+are introduced. Patches and originals are both Ninja dependencies. No Network
+transport behavior is claimed: Darling's C networking backend is still stubbed.

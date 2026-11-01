@@ -1,0 +1,19 @@
+--- a/NWPath.swift
++++ b/NWPath.swift
+@@ -301,0 +302,16 @@
++
++	/// Create a network path monitor that watches every interface type except the
++	/// prohibited ones.
++	@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
++	public init(prohibitedInterfaceTypes: [NWInterface.InterfaceType]) {
++		self.nw = nw_path_monitor_create()
++		for interfaceType in prohibitedInterfaceTypes {
++			nw_path_monitor_prohibit_interface_type(self.nw, interfaceType.nw)
++		}
++		nw_path_monitor_set_update_handler(self.nw) { (newPath) in
++			self.currentPath = NWPath(newPath)
++			if let handler = self._pathUpdateHandler {
++				handler(self.currentPath)
++			}
++		}
++	}
