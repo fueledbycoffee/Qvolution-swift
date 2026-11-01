@@ -1,5 +1,14 @@
 #!/bin/sh
 set -eu
+# Preserve prior and partial products for integration evidence; never delete them.
+preserve_paths() {
+ for prior in "$@"; do
+  if [ -e "$prior" ] || [ -L "$prior" ]; then
+   archive=$(mktemp -d "${prior}.previous-XXXXXX")
+   mv "$prior" "$archive/product"
+  fi
+ done
+}
 here=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
 repo=$(CDPATH= cd -- "$here/../../.." && pwd)
 arch=${CRYPTOKIT_ARCH:-arm64}
@@ -11,8 +20,8 @@ esac
 target="$arch-apple-macosx26.0"
 out=${CRYPTOKIT_BUILD_DIR:-$default_out}
 : "${OVERLAY_BUILD_DIR:?}" "${DARLING_SOURCE_ROOT:?}"
-rm -f "$out/obj/tests.o" "$out/cryptokit-tests"
-rm -rf "$out/test-module-cache"
+preserve_paths "$out/obj/tests.o" "$out/cryptokit-tests"
+preserve_paths "$out/test-module-cache"
 # An explicit runtime directory binds these links to the selected staged runtime.
 # Preserve the original resource/repository search paths when no override is set.
 if [ -n "${SWIFT_RUNTIME_DIR:-}" ]; then

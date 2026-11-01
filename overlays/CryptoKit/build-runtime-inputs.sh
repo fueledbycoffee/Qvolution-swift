@@ -2,6 +2,15 @@
 # Compile the complete existing source overlays privately with the selected compiler.
 # No publication, lipo merge, installation, runtime shim export or guest execution.
 set -eu
+# Preserve prior and partial products for integration evidence; never delete them.
+preserve_paths() {
+ for prior in "$@"; do
+  if [ -e "$prior" ] || [ -L "$prior" ]; then
+   archive=$(mktemp -d "${prior}.previous-XXXXXX")
+   mv "$prior" "$archive/product"
+  fi
+ done
+}
 : "${SWIFT_TOOLCHAIN:?}" "${SWIFT_RESOURCE_DIR:?}" "${SWIFT_RUNTIME_DIR:?}"
 : "${DARLING_SDK:?}" "${DARLING_SOURCE_ROOT:?}" "${DARLING_ROOT:?}"
 : "${DARLING_LD:?}" "${DARLING_LIBSYSTEM:?}" "${CRYPTOKIT_MODULES_BUILD_DIR:?private output required}"
@@ -17,15 +26,15 @@ all_modules='Darwin ObjectiveC CoreFoundation Dispatch os XPC Combine InternalCo
 core_libraries='swiftCore swift_Concurrency swift_StringProcessing swift_RegexParser swiftSwiftOnoneSupport'
 cleanup_outputs() {
  for module in $all_modules; do
-  rm -f "$out/obj/$module.o"
+  preserve_paths "$out/obj/$module.o"
   for suffix in swiftmodule swiftdoc swiftsourceinfo swiftinterface private.swiftinterface package.swiftinterface abi.json; do
-   rm -f "$out/modules/$module.$suffix"
+   preserve_paths "$out/modules/$module.$suffix"
   done
  done
- rm -f "$out/obj/Dispatch.mm.o" "$out/obj/DarlingSerialExecutor.m.o" "$out/obj/CombineHelpers.o"
- for module in $linked_modules; do rm -f "$out/libswift$module.dylib" "$out/runtime/libswift$module.dylib"; done
- for library in $core_libraries; do rm -f "$out/runtime/lib$library.dylib"; done
- rm -f "$out/Combine.framework/Versions/A/Combine"
+ preserve_paths "$out/obj/Dispatch.mm.o" "$out/obj/DarlingSerialExecutor.m.o" "$out/obj/CombineHelpers.o"
+ for module in $linked_modules; do preserve_paths "$out/libswift$module.dylib" "$out/runtime/libswift$module.dylib"; done
+ for library in $core_libraries; do preserve_paths "$out/runtime/lib$library.dylib"; done
+ preserve_paths "$out/Combine.framework/Versions/A/Combine"
 }
 trap 'build_status=$?; if [ "$build_status" -ne 0 ]; then cleanup_outputs; fi' 0
 cleanup_outputs

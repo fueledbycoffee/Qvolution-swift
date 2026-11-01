@@ -1,5 +1,14 @@
 #!/bin/sh
 set -eu
+# Preserve prior and partial products for integration evidence; never delete them.
+preserve_paths() {
+ for prior in "$@"; do
+  if [ -e "$prior" ] || [ -L "$prior" ]; then
+   archive=$(mktemp -d "${prior}.previous-XXXXXX")
+   mv "$prior" "$archive/product"
+  fi
+ done
+}
 : "${SWIFT_TOOLCHAIN:?}" "${SWIFT_RESOURCE_DIR:?}" "${DARLING_SDK:?}"
 : "${DARLING_LD:?}" "${DARLING_LIBSYSTEM:?}" "${DARLING_ROOT:?}"
 : "${CRYPTOKIT_SOURCE:?point at a swift-crypto clone containing the pinned commits}"
@@ -17,13 +26,13 @@ target="$arch-apple-macosx26.0"
 out=${CRYPTOKIT_BUILD_DIR:-$default_out}
 mkdir -p "$out/src" "$out/obj" "$out/modules"
 cleanup_outputs() {
-    rm -f "$out/obj/AEAD.o" "$out/obj/CryptoKit.o" "$out/CryptoKit" \
+    preserve_paths "$out/obj/AEAD.o" "$out/obj/CryptoKit.o" "$out/CryptoKit" \
         "$out/modules/CryptoKit.swiftmodule" "$out/modules/CryptoKit.swiftdoc" \
         "$out/modules/CryptoKit.swiftsourceinfo"
 }
 trap 'build_status=$?; if [ "$build_status" -ne 0 ]; then cleanup_outputs; fi' 0
 cleanup_outputs
-rm -rf "$out/module-cache"
+preserve_paths "$out/module-cache"
 
 # An explicit runtime directory binds these links to the selected staged runtime.
 # Preserve the original resource/repository search paths when no override is set.

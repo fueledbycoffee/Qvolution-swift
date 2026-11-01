@@ -1,6 +1,15 @@
 #!/bin/sh
 # Emit complete existing source overlay modules privately; never link/publish binaries.
 set -eu
+# Preserve prior and partial products for integration evidence; never delete them.
+preserve_paths() {
+ for prior in "$@"; do
+  if [ -e "$prior" ] || [ -L "$prior" ]; then
+   archive=$(mktemp -d "${prior}.previous-XXXXXX")
+   mv "$prior" "$archive/product"
+  fi
+ done
+}
 : "${SWIFT_TOOLCHAIN:?}" "${SWIFT_RESOURCE_DIR:?}" "${DARLING_SDK:?}" "${DARLING_SOURCE_ROOT:?}"
 : "${OPENCOMBINE_SRC:?}" "${SWIFT_COLLECTIONS_SRC:?}" "${SWIFT_CMARK_SRC:?}" "${SWIFT_FOUNDATION_SRC:?}"
 here=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
@@ -16,15 +25,15 @@ if [ "$emit_objects" = 1 ]; then mkdir -p "$out/obj"; fi
 mkdir -p "$out/modules"
 cleanup_modules() {
  for module in $modules; do
-  if [ "$emit_objects" = 1 ]; then rm -f "$out/obj/$module.o"; fi
+  if [ "$emit_objects" = 1 ]; then preserve_paths "$out/obj/$module.o"; fi
   for suffix in swiftmodule swiftdoc swiftsourceinfo swiftinterface private.swiftinterface package.swiftinterface abi.json; do
-   rm -f "$out/modules/$module.$suffix"
+   preserve_paths "$out/modules/$module.$suffix"
   done
  done
 }
 trap 'build_status=$?; if [ "$build_status" -ne 0 ]; then cleanup_modules; fi' 0
 cleanup_modules
-rm -rf "$out/module-cache"
+preserve_paths "$out/module-cache"
 for module in Swift _Concurrency _StringProcessing; do
  if [ ! -s "$SWIFT_RESOURCE_DIR/macosx/$module.swiftmodule/$arch-apple-macos.swiftmodule" ]; then
   printf 'Missing source-built Darwin module for %s: %s\n' "$arch" "$module" >&2
@@ -96,7 +105,7 @@ build_overlay os -Xcc -fmodule-map-file="$overlays/os/shims/module.modulemap"
 build_overlay XPC -Xcc -fmodule-map-file="$overlays/XPC/shims/module.modulemap"
 
 # Apply the same adaptations as the published overlay build to a private copy.
-rm -rf "$out/combine-src"
+preserve_paths "$out/combine-src"
 cp -R "$OPENCOMBINE_SRC/Sources/OpenCombine" "$out/combine-src"
 for source_patch in "$overlays"/Combine/patches/*.patch; do
  patch -p1 -s -d "$out/combine-src" < "$source_patch"
