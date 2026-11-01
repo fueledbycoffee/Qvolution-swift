@@ -2,6 +2,9 @@ import Foundation
 import Darwin
 import CryptoKit
 
+print("ENTER CryptoKitAEADTests")
+fflush(nil)
+
 func hex(_ text: String) -> Data {
     let chars = Array(text)
     precondition(chars.count % 2 == 0)
@@ -65,3 +68,12 @@ rejects { _ = try ChaChaPoly.seal(Data(), using: SymmetricKey(data: Data(repeati
 rejects { _ = try ChaChaPoly.Nonce(data: Data(repeating: 0, count: 11)) }
 precondition(Data(SHA256.hash(data: Data("abc".utf8))) == hex("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"))
 print("Key/nonce validation and existing SHA256 behavior pass")
+
+// RFC 4231 section 4.2, test case 1.
+let hmacKey = SymmetricKey(data: Data(repeating: 0x0b, count: 20))
+let hmacMessage = Data("Hi There".utf8)
+let hmac = HMAC<SHA256>.authenticationCode(for: hmacMessage, using: hmacKey)
+precondition(Data(hmac) == hex("b0344c61d8db38535ca8afceaf0bf12b881dc200c9833da726e9376c2e32cff7"))
+precondition(HMAC<SHA256>.isValidAuthenticationCode(hmac, authenticating: hmacMessage, using: hmacKey))
+precondition(!HMAC<SHA256>.isValidAuthenticationCode(hmac, authenticating: Data(), using: hmacKey))
+print("HMAC-SHA256: RFC 4231 vector and rejection pass")

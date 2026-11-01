@@ -19,9 +19,25 @@ Use the same environment as `../build.sh`, plus:
   3.12.3 commit `e8d6eba1fef23ae5b359c46b03f7d94be2f41fed`.
   The base includes the runtime's existing Darling SHA256/HMAC backend.
 - `OVERLAY_BUILD_DIR`: an overlay build containing the Foundation Swift module.
-- `CRYPTOKIT_BUILD_DIR`: optional separate output directory.
+- `CRYPTOKIT_FRAMEWORK_PATH`: optional directory containing the installed
+  `CryptoKit.framework`, for the test client. The default is the build directory.
+  The test links with `-framework CryptoKit` and still uses the matching emitted
+  source module from the build directory to compile.
+- `CRYPTOKIT_ARCH`: `arm64` (default) or `x86_64`. The C backend, Swift module,
+  framework link and test client all use this architecture.
+- `CRYPTOKIT_BUILD_DIR`: optional separate output directory. Defaults to `build`
+  for arm64 and `build-x86_64` for x86_64, so the two builds do not overwrite each
+  other.
 
-Run `sh build.sh`. The output is `CryptoKit` in the build directory; the shipped
+The selected target also requires matching Darwin Swift standard library modules
+and shims in `SWIFT_RESOURCE_DIR`, matching source-built Foundation/Darwin modules
+in `OVERLAY_BUILD_DIR/modules`, and matching Darling libraries and `DARLING_CRT1`.
+A Linux Swift compiler alone does not supply Darwin standard library modules.
+Build these from licensed Swift sources and Darling headers; this script does not
+extract modules or headers from an Apple SDK. An arm64 Foundation module cannot
+serve as the x86_64 input. The compiler rejects a module for the wrong target.
+
+Run `CRYPTOKIT_ARCH=x86_64 sh build.sh` for x86_64 or `sh build.sh` for arm64. The output is `CryptoKit` in the build directory; the shipped
 framework is not replaced automatically. `tests/main.swift` checks NIST GCM
 vectors, RFC 8439 section 2.8.2, authentication rejection, key and nonce validation,
 and the existing SHA256 API. Compile it against the emitted CryptoKit module and
@@ -33,12 +49,98 @@ for interface names. No binary implementation was inspected.
 
 To include the generated executable in a staged Darling installation, configure
 Darling with `-DDARLING_CRYPTOKIT_BINARY=/absolute/build/path/CryptoKit` after this
-build completes, then use its normal staged install. This arm64-only option
-changes the executable installed in the existing versioned framework layout;
+build completes, then use its normal staged install. This explicit option
+works for either architecture and changes the executable installed in the existing
+versioned framework layout, always named `CryptoKit`;
 it does not commit or copy compiled output into the source tree. Without the
-option, installation retains the repository's existing prebuilt subset.
+option, arm64 installation retains the repository's existing prebuilt subset;
+other architectures do not install that arm64 artifact. Select the generated
+artifact for the configured runtime target. The superproject's Swift dylib map
+must use the same override when linking clients.
 
-Run `sh tests/run.sh` with the same environment to compile the authored vector
+Run `sh tests/run.sh` with the same environment, including `CRYPTOKIT_ARCH`, to compile the authored vector
 fixture. It prints the executable path; run that executable under Darling with
 this build directory supplied through `DYLD_FRAMEWORK_PATH` (the script creates
 the framework layout). No application data or secret test keys are used.
+
+An emitted module and a matching module name do not establish full Swift ABI
+compatibility. Before installing a new target, verify the architecture on your
+own build output, run the typed vector client (including RFC 4231 HMAC-SHA256),
+and compile and run a normal client against the installed framework. The vectors
+cover only the implemented SHA256/HMAC and AEAD surface. SHA384/512, SHA3,
+MD5/SHA1, HKDF, signatures and key agreement remain outside this focused build;
+application compatibility requires exercising the application's actual imports.
+
+For the installed-client check, set `CRYPTOKIT_FRAMEWORK_PATH` to the staged
+runtime's `System/Library/Frameworks` directory, compile with `tests/run.sh`, and
+run that client using the installed runtime. The script never modifies this
+explicit framework directory. Run without a framework search override when
+checking normal installed loader resolution.
+
+## Source modules for an additional architecture
+
+`build-module-inputs.sh` emits the existing Darling overlay source sets into a
+private directory without linking or replacing runtime binaries. It leaves
+`../build.sh` and its arm64 publication behavior unchanged. Set `CRYPTOKIT_ARCH`
+explicitly, provide genuine source-built Darwin `Swift`, `_Concurrency` and
+`_StringProcessing` modules for that target in `SWIFT_RESOURCE_DIR`, and set the same toolchain,
+source SDK and `DARLING_SOURCE_ROOT` used by the focused CryptoKit build.
+
+Provide pristine source checkouts through `OPENCOMBINE_SRC`,
+`SWIFT_COLLECTIONS_SRC`, `SWIFT_CMARK_SRC` and `SWIFT_FOUNDATION_SRC`. The helper
+verifies the existing recipe's exact pins and applies its existing Combine
+patches only to a private copy. `foundation-module-sources.list` repeats the
+current recipe's upstream Foundation source paths, in the same order; keep it
+aligned when the main Foundation build changes. All local overlay sources are
+compiled, including the existing partial Foundation implementation and its
+actual upstream additions. No replacement Foundation declarations are generated.
+
+`CRYPTOKIT_MODULES_BUILD_DIR` selects the output; the default is
+`build-modules-$CRYPTOKIT_ARCH`. Set `OVERLAY_BUILD_DIR` to this directory for the
+subsequent focused CryptoKit build. The helper emits Darwin, ObjectiveC,
+CoreFoundation, Dispatch, os, XPC, Combine, InternalCollectionsUtilities,
+_RopeModule and Foundation modules. It uses release optimization and normal implicit string-processing imports;
+the existing os source uses the real substring `String.contains` overload from
+`_StringProcessing`. Any further source dependencies must still compile successfully. It requires real
+concurrency types rather than substituting executor or async declarations.
+
+These compile inputs do not supply runtime implementations. A module that
+compiles can still require exports absent from an older installed overlay.
+Verify real CryptoKit compilation and strong linking, typed vectors and normal
+installed-client execution against the matching runtime before claiming API or
+ABI compatibility. A failed helper clears all its module outputs.
+
+For a focused build and its typed client against a selected staged Swift runtime,
+set `SWIFT_RUNTIME_DIR` to that runtime's `usr/lib/swift` directory. Both scripts
+require its five directly linked Swift libraries to exist and use that directory
+in place of the original resource/repository library search paths. The default
+search paths remain unchanged when this variable is unset. Library presence is
+not architecture or runtime qualification; the actual strong link and runtime
+checks are still required.
+
+## Matching source overlay runtime
+
+`build-runtime-inputs.sh` compiles the same complete ten source module sets into
+objects with the selected compiler, then links the seven existing Swift overlay
+dylibs and the real OpenCombine framework privately. It also compiles the
+existing Dispatch Objective-C helpers, Combine C helpers, and all of the pinned
+recipe's cmark C sources. The private collections objects are linked into
+Foundation with the recipe's unexported-symbol patterns. No implementation
+source is reduced, and no legacy runtime compatibility variable is synthesized.
+
+Set the module helper's source variables plus `DARLING_LD`,
+`DARLING_LIBSYSTEM`, `DARLING_ROOT`, and an explicit `SWIFT_RUNTIME_DIR` containing
+the selected core runtime libraries. `CRYPTOKIT_MODULES_BUILD_DIR` is required
+and must be a private build directory. `CRYPTOKIT_ARCH` still defaults to arm64;
+choose x86_64 explicitly for that target. The original `../build.sh`, its arm64
+publication and all shipped artifacts are unchanged. The existing module helper
+continues to emit modules only unless the runtime helper explicitly requests
+`CRYPTOKIT_EMIT_OVERLAY_OBJECTS=1`.
+
+The runtime helper's `runtime` subdirectory combines symlinks to the selected
+core runtime with the freshly built overlays, so focused CryptoKit builds can
+select it through `SWIFT_RUNTIME_DIR`. This is only a private build input.
+A successful link does not establish that the existing partial Foundation or
+Combine implementations are complete substitutes for Apple's frameworks.
+Actual private-prefix algorithm vectors, normal installed clients and
+application execution remain separate requirements.
