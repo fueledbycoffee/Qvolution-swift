@@ -2381,6 +2381,8 @@ private extension __JSONDecoder {
             // * If it was a Float, you will get back the precise value
             // * If it was a Double or Decimal, you will get back the nearest approximation if it will fit
             let double = number.doubleValue()
+            // Only JSON5 parsing can construct explicit nonfinite numeric values.
+            if !double.isFinite { return Float(double) }
             guard abs(double) <= Double(Float.greatestFiniteMagnitude) else {
                 throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: self.codingPath, debugDescription: "Parsed JSON number \(number) does not fit in \(type)."))
             }
