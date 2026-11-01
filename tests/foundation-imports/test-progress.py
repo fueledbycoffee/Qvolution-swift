@@ -25,7 +25,7 @@ for name in ('round3-behavior', 'round3-formatting'):
     probe = args.scratch / (name + '-flush.swift')
     probe.write_text('import Glibc\n' + helper + '\nprogress("forced-trap")\nprecondition(false)\n')
     binary = probe.with_suffix('')
-    subprocess.run([args.swiftc, '-O', str(probe), '-o', str(binary)], check=True)
+    subprocess.run([args.swiftc, '-O', '-module-cache-path', str(args.scratch / 'module-cache'), str(probe), '-o', str(binary)], check=True)
     result = subprocess.run([str(binary)], capture_output=True,
                             preexec_fn=lambda: resource.setrlimit(resource.RLIMIT_CORE, (0, 0)))
     assert result.returncode < 0, result.returncode
