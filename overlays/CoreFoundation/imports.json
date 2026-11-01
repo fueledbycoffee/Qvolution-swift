@@ -1,0 +1,10 @@
+{
+  "sources": [
+    "CGFloat.swift",
+    "CoreFoundation.swift"
+  ],
+  "args": [
+    "--link=@ROOT@/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation",
+    "--link=-lswiftDarwin"
+  ]
+}

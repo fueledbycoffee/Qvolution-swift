@@ -10,6 +10,8 @@ def exports(path):
         ['llvm-nm', '--defined-only', '--extern-only', str(path)], text=True).splitlines() if line.split()}
 for recipe in recipes:
     module = recipe.parent.name
+    if len(sys.argv) > 2 and module not in sys.argv[2:]:
+        continue
     expected = set((recipe.parent / 'imports.exports').read_text().splitlines())
     if not expected:
         raise SystemExit('Empty demand set: ' + module)
