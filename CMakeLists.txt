@@ -240,6 +240,7 @@ if(TARGET_ARM64)
 	InstallSymlink(Versions/Current/GroupActivities "${CMAKE_INSTALL_PREFIX}/${GROUPACTIVITIES_FRAMEWORK_DIR}/GroupActivities")
 endif()
 
+if(NOT DARLING_SWIFT_SOURCE_RUNTIME)
 # Newer clients bind Darwin's errno and POSIXErrorCode to this split overlay.
 # Their implementations remain in the real Swift Darwin source overlay.
 set(DARLING_DARWIN_FOUNDATION_OVERLAY "${CMAKE_CURRENT_SOURCE_DIR}/libswiftDarwin.dylib"
@@ -263,3 +264,5 @@ set_property(TARGET swift_DarwinFoundation1 APPEND_STRING PROPERTY LINK_FLAGS
 set_property(TARGET swift_DarwinFoundation1 APPEND PROPERTY LINK_DEPENDS
     "${DARLING_DARWIN_FOUNDATION_OVERLAY}")
 install(TARGETS swift_DarwinFoundation1 DESTINATION libexec/darling/usr/lib/swift)
+
+endif()
