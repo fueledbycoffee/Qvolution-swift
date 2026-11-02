@@ -563,7 +563,7 @@ internal enum _JSONSerialization {
             }
             let text = String(decoding: bytes[start..<offset], as: UTF8.self)
             if text != "-0", let integer = Int64(text) { return NSNumber(value: integer) }
-            if let integer = UInt64(text) { return _JSONUnsignedNumber(integer) }
+            if !negative, let integer = UInt64(text) { return _JSONUnsignedNumber(integer) }
             guard let number = Double(text), number.isFinite else { throw Error.invalidJSON("Invalid number", offset: start) }
             return NSNumber(value: number)
         }
