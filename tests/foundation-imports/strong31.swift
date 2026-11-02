@@ -59,7 +59,7 @@ RunLoop.current.schedule { scheduled = true }
 let deadline = Date().addingTimeInterval(1)
 while !scheduled && Date() < deadline { _ = RunLoop.current.run(mode: .default, before: deadline) }
 check(scheduled, "run loop executes scheduled work")
-let path = "/tmp/foundation-strong31-io"
+let path = "/Applications/r2-foundation-stub/foundation-strong31-io"
 let fd = open(path, O_CREAT | O_TRUNC | O_RDWR, 0600)
 precondition(fd >= 0)
 let handle = FileHandle(fileDescriptor: fd, closeOnDealloc: true)!
@@ -69,7 +69,11 @@ check(try! handle.read(upToCount: 2) == Data([1,2]), "checked read")
 check(try! handle.read(upToCount: 2) == Data([3]), "short read")
 check(try! handle.read(upToCount: 2) == nil, "EOF nil")
 handle.closeFile()
+print("PASS checked handle close"); fflush(stdout)
 do { try handle.write(contentsOf: Data([4])); preconditionFailure("closed write succeeded") } catch {}
+print("PASS closed write throws"); fflush(stdout)
+do { try handle.write(contentsOf: Data()); preconditionFailure("empty closed write succeeded") } catch {}
+do { _ = try handle.read(upToCount: 1); preconditionFailure("closed read succeeded") } catch {}
 check("café".applyingTransform(.stripDiacritics, reverse: false) == "cafe", "string transform")
 do { _ = try url.bookmarkData(); preconditionFailure("unsupported bookmark succeeded") } catch {}
 var stale = false
