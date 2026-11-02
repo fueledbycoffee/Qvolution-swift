@@ -208,12 +208,12 @@ internal enum _JSONSerialization {
 
     // MARK: - Parsing
 
-    static func object(with data: Data) throws -> Any {
-        var parser = _Parser(bytes: [UInt8](data))
+    static func object(with data: Data, allowsJSON5: Bool = false) throws -> Any {
+        var parser = _Parser(bytes: [UInt8](data), json5: allowsJSON5)
         parser.skipByteOrderMark()
-        parser.skipWhitespace()
+        try parser.skipWhitespace()
         let value = try parser.parseValue(depth: 0)
-        parser.skipWhitespace()
+        try parser.skipWhitespace()
         guard parser.offset == parser.bytes.count else {
             throw Error.invalidJSON("Garbage at end", offset: parser.offset)
         }
@@ -222,10 +222,12 @@ internal enum _JSONSerialization {
 
     private struct _Parser {
         let bytes: [UInt8]
+        let json5: Bool
         var offset = 0
 
-        init(bytes: [UInt8]) {
+        init(bytes: [UInt8], json5: Bool) {
             self.bytes = bytes
+            self.json5 = json5
         }
 
         var current: UInt8? {
@@ -238,10 +240,74 @@ internal enum _JSONSerialization {
             }
         }
 
-        mutating func skipWhitespace() {
-            while let byte = current, byte == 0x20 || byte == 0x09 || byte == 0x0A || byte == 0x0D {
-                offset += 1
+        func scalarAtOffset() throws -> (Unicode.Scalar, Int) {
+            guard let byte = current else { throw Error.invalidJSON("Unexpected end", offset: offset) }
+            let count = byte < 0x80 ? 1 : byte < 0xE0 ? 2 : byte < 0xF0 ? 3 : 4
+            guard offset + count <= bytes.count,
+                  let text = String(validating: bytes[offset..<offset + count], as: UTF8.self),
+                  text.unicodeScalars.count == 1, let scalar = text.unicodeScalars.first else {
+                throw Error.invalidJSON("Invalid UTF-8", offset: offset)
             }
+            return (scalar, count)
+        }
+
+        mutating func skipWhitespace() throws {
+            while let byte = current {
+                if byte == 0x20 || byte == 0x09 || byte == 0x0A || byte == 0x0D {
+                    offset += 1
+                } else if json5 && byte == 0x2F && offset + 1 < bytes.count {
+                    if bytes[offset + 1] == 0x2F {
+                        offset += 2
+                        while current != nil {
+                            let (scalar, count) = try scalarAtOffset()
+                            offset += count
+                            if scalar == "\n" || scalar == "\r" || scalar == "\u{2028}" || scalar == "\u{2029}" { break }
+                        }
+                    } else if bytes[offset + 1] == 0x2A {
+                        offset += 2
+                        while offset + 1 < bytes.count && !(bytes[offset] == 0x2A && bytes[offset + 1] == 0x2F) {
+                            offset += 1
+                        }
+                        guard offset + 1 < bytes.count else { throw Error.invalidJSON("Unterminated comment", offset: offset) }
+                        offset += 2
+                    } else { break }
+                } else if json5 {
+                    let (scalar, count) = try scalarAtOffset()
+                    guard scalar == "\u{B}" || scalar == "\u{C}" || scalar == "\u{FEFF}" ||
+                          scalar == "\u{2028}" || scalar == "\u{2029}" || scalar.properties.generalCategory == .spaceSeparator else { break }
+                    offset += count
+                } else { break }
+            }
+        }
+
+        mutating func parseIdentifier() throws -> String {
+            var result = String.UnicodeScalarView()
+            while current != nil {
+                let scalar: Unicode.Scalar
+                let escaped = current == 0x5C
+                if escaped {
+                    offset += 1
+                    try expect("u")
+                    guard let value = Unicode.Scalar(try parseHex4()) else {
+                        throw Error.invalidJSON("Invalid identifier escape", offset: offset)
+                    }
+                    scalar = value
+                } else {
+                    let (value, count) = try scalarAtOffset()
+                    let valid = value == "$" || value == "_" || (result.isEmpty ? value.properties.isIDStart : value.properties.isIDContinue) ||
+                        (!result.isEmpty && (value == "\u{200C}" || value == "\u{200D}"))
+                    if !valid { break }
+                    scalar = value
+                    offset += count
+                }
+                guard scalar == "$" || scalar == "_" || (result.isEmpty ? scalar.properties.isIDStart : scalar.properties.isIDContinue) ||
+                    (!result.isEmpty && (scalar == "\u{200C}" || scalar == "\u{200D}")) else {
+                    throw Error.invalidJSON("Invalid identifier", offset: offset)
+                }
+                result.append(scalar)
+            }
+            guard !result.isEmpty else { throw Error.invalidJSON("Missing identifier", offset: offset) }
+            return String(result)
         }
 
         mutating func expect(_ literal: String) throws {
@@ -258,6 +324,10 @@ internal enum _JSONSerialization {
             }
             guard let byte = current else {
                 throw Error.invalidJSON("Unexpected end of file", offset: offset)
+            }
+            if json5 && (byte == 0x27) { return NSString(string: try parseString()) }
+            if json5 && (byte == 0x2B || byte == 0x2E || byte == 0x49 || byte == 0x4E || byte == 0x2D || (0x30...0x39).contains(byte)) {
+                return try parseJSON5Number()
             }
             switch byte {
             case UInt8(ascii: "{"): return try parseObject(depth: depth)
@@ -282,29 +352,35 @@ internal enum _JSONSerialization {
         mutating func parseObject(depth: Int) throws -> NSDictionary {
             let result = NSMutableDictionary()
             offset += 1
-            skipWhitespace()
+            try skipWhitespace()
             if current == UInt8(ascii: "}") {
                 offset += 1
                 return result
             }
             while true {
-                skipWhitespace()
-                guard current == UInt8(ascii: "\"") else {
+                try skipWhitespace()
+                let key: String
+                if current == 0x22 || (json5 && current == 0x27) {
+                    key = try parseString()
+                } else if json5 {
+                    key = try parseIdentifier()
+                } else {
                     throw Error.invalidJSON("No string key for value in object", offset: offset)
                 }
-                let key = try parseString()
-                skipWhitespace()
+                try skipWhitespace()
                 guard current == UInt8(ascii: ":") else {
                     throw Error.invalidJSON("No value for key in object", offset: offset)
                 }
                 offset += 1
-                skipWhitespace()
+                try skipWhitespace()
                 let value = try parseValue(depth: depth + 1)
                 result.setObject(value, forKey: NSString(string: key))
-                skipWhitespace()
+                try skipWhitespace()
                 switch current {
                 case UInt8(ascii: ","):
                     offset += 1
+                    try skipWhitespace()
+                    if json5 && current == 0x7D { offset += 1; return result }
                 case UInt8(ascii: "}"):
                     offset += 1
                     return result
@@ -317,18 +393,20 @@ internal enum _JSONSerialization {
         mutating func parseArray(depth: Int) throws -> NSArray {
             let result = NSMutableArray()!
             offset += 1
-            skipWhitespace()
+            try skipWhitespace()
             if current == UInt8(ascii: "]") {
                 offset += 1
                 return result
             }
             while true {
-                skipWhitespace()
+                try skipWhitespace()
                 result.add(try parseValue(depth: depth + 1))
-                skipWhitespace()
+                try skipWhitespace()
                 switch current {
                 case UInt8(ascii: ","):
                     offset += 1
+                    try skipWhitespace()
+                    if json5 && current == 0x5D { offset += 1; return result }
                 case UInt8(ascii: "]"):
                     offset += 1
                     return result
@@ -338,12 +416,12 @@ internal enum _JSONSerialization {
             }
         }
 
-        mutating func parseHex4() throws -> UInt32 {
-            guard offset + 4 <= bytes.count else {
+        mutating func parseHex4(count: Int = 4) throws -> UInt32 {
+            guard offset + count <= bytes.count else {
                 throw Error.invalidJSON("Invalid unicode escape sequence", offset: offset)
             }
             var value: UInt32 = 0
-            for byte in bytes[offset..<offset + 4] {
+            for byte in bytes[offset..<offset + count] {
                 let digit: UInt8
                 switch byte {
                 case UInt8(ascii: "0")...UInt8(ascii: "9"): digit = byte - UInt8(ascii: "0")
@@ -353,11 +431,12 @@ internal enum _JSONSerialization {
                 }
                 value = value * 16 + UInt32(digit)
             }
-            offset += 4
+            offset += count
             return value
         }
 
         mutating func parseString() throws -> String {
+            let quote = current!
             offset += 1
             var utf8: [UInt8] = []
             while true {
@@ -365,17 +444,36 @@ internal enum _JSONSerialization {
                     throw Error.invalidJSON("Unexpected end of file during string parse", offset: offset)
                 }
                 offset += 1
-                switch byte {
-                case UInt8(ascii: "\""):
+                if byte == quote {
                     guard let string = String(validating: utf8, as: UTF8.self) else {
-                        throw Error.invalidJSON("Unable to convert data to a string using UTF-8", offset: offset)
+                        throw Error.invalidJSON("Invalid UTF-8 string", offset: offset)
                     }
                     return string
+                }
+                switch byte {
                 case UInt8(ascii: "\\"):
                     guard let escaped = current else {
                         throw Error.invalidJSON("Unexpected end of file during string parse", offset: offset)
                     }
                     offset += 1
+                    if json5 {
+                        switch escaped {
+                        case 0x27: utf8.append(escaped); continue
+                        case 0x76: utf8.append(0x0B); continue
+                        case 0x30:
+                            guard current.map({ !(0x30...0x39).contains($0) }) ?? true else { throw Error.invalidJSON("Octal escape", offset: offset) }
+                            utf8.append(0); continue
+                        case 0x78: utf8.append(UInt8(try parseHex4(count: 2))); continue
+                        case 0x0A: continue
+                        case 0x0D:
+                            if current == 0x0A { offset += 1 }
+                            continue
+                        case 0xE2 where offset + 1 < bytes.count && bytes[offset] == 0x80 && (bytes[offset + 1] == 0xA8 || bytes[offset + 1] == 0xA9):
+                            offset += 2; continue
+                        case 0x31...0x39: throw Error.invalidJSON("Octal escape", offset: offset)
+                        default: break
+                        }
+                    }
                     switch escaped {
                     case UInt8(ascii: "\""), UInt8(ascii: "\\"), UInt8(ascii: "/"): utf8.append(escaped)
                     case UInt8(ascii: "b"): utf8.append(0x08)
@@ -404,14 +502,70 @@ internal enum _JSONSerialization {
                         }
                         utf8.append(contentsOf: String(scalar).utf8)
                     default:
-                        throw Error.invalidJSON("Invalid escape sequence", offset: offset)
+                        guard json5 else { throw Error.invalidJSON("Invalid escape sequence", offset: offset) }
+                        utf8.append(escaped)
                     }
                 case 0x00..<0x20:
-                    throw Error.invalidJSON("Unescaped control character", offset: offset)
+                    guard json5 && byte != 0x0A && byte != 0x0D else { throw Error.invalidJSON("Unescaped control character", offset: offset) }
+                    utf8.append(byte)
                 default:
                     utf8.append(byte)
                 }
             }
+        }
+
+        mutating func parseJSON5Number() throws -> NSObject {
+            let start = offset
+            let negative = current == 0x2D
+            if current == 0x2B || current == 0x2D { offset += 1 }
+            if current == 0x49 { try expect("Infinity"); return NSNumber(value: negative ? -Double.infinity : Double.infinity) }
+            if current == 0x4E { try expect("NaN"); return NSNumber(value: Double.nan) }
+            if current == 0x30 && offset + 1 < bytes.count && (bytes[offset + 1] == 0x78 || bytes[offset + 1] == 0x58) {
+                offset += 2
+                let digits = offset
+                var number: Double = 0
+                while let byte = current {
+                    let digit: UInt8
+                    switch byte {
+                    case 0x30...0x39: digit = byte - 0x30
+                    case 0x41...0x46: digit = byte - 0x41 + 10
+                    case 0x61...0x66: digit = byte - 0x61 + 10
+                    default: digit = 255
+                    }
+                    if digit == 255 { break }
+                    number = number * 16 + Double(digit)
+                    offset += 1
+                }
+                guard offset > digits && number.isFinite else { throw Error.invalidJSON("Invalid hexadecimal number", offset: start) }
+                let text = String(decoding: bytes[digits..<offset], as: UTF8.self)
+                if !negative, let integer = UInt64(text, radix: 16) {
+                    return integer <= UInt64(Int64.max) ? NSNumber(value: Int64(integer)) : _JSONUnsignedNumber(integer)
+                }
+                if negative, let integer = UInt64(text, radix: 16), integer > 0, integer <= UInt64(Int64.max) { return NSNumber(value: -Int64(integer)) }
+                return NSNumber(value: negative ? -number : number)
+            }
+            let integerStart = offset
+            while let byte = current, (0x30...0x39).contains(byte) { offset += 1 }
+            let integerCount = offset - integerStart
+            guard integerCount <= 1 || bytes[integerStart] != 0x30 else { throw Error.invalidJSON("Leading zero", offset: start) }
+            var digits = integerCount
+            if current == 0x2E {
+                offset += 1
+                while let byte = current, (0x30...0x39).contains(byte) { offset += 1; digits += 1 }
+            }
+            guard digits > 0 else { throw Error.invalidJSON("Invalid number", offset: start) }
+            if current == 0x65 || current == 0x45 {
+                offset += 1
+                if current == 0x2B || current == 0x2D { offset += 1 }
+                let exponentStart = offset
+                while let byte = current, (0x30...0x39).contains(byte) { offset += 1 }
+                guard offset > exponentStart else { throw Error.invalidJSON("Invalid exponent", offset: start) }
+            }
+            let text = String(decoding: bytes[start..<offset], as: UTF8.self)
+            if text != "-0", let integer = Int64(text) { return NSNumber(value: integer) }
+            if let integer = UInt64(text) { return _JSONUnsignedNumber(integer) }
+            guard let number = Double(text), number.isFinite else { throw Error.invalidJSON("Invalid number", offset: start) }
+            return NSNumber(value: number)
         }
 
         mutating func parseNumber() throws -> NSObject {
