@@ -37,3 +37,9 @@ private extension NSObject {
     return NSString(bytes: bytes, length: count, encoding: UInt(NSUTF8StringEncoding))
   }
 }
+
+extension Substring {
+  public func _bridgeToObjectiveC() -> NSString {
+    return String(self)._bridgeToObjectiveC()
+  }
+}

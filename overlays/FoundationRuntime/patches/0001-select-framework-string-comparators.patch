@@ -1,0 +1,26 @@
+--- a/String+SortComparator.swift
++++ b/String+SortComparator.swift
+@@ -22 +22 @@
+-#if FOUNDATION_FRAMEWORK
++#if true
+@@ -48 +48 @@
+-#if FOUNDATION_FRAMEWORK
++#if true
+@@ -73 +73 @@
+-#if FOUNDATION_FRAMEWORK
++#if true
+@@ -145 +145 @@
+-#if FOUNDATION_FRAMEWORK
++#if true
+@@ -191 +191 @@
+-#if FOUNDATION_FRAMEWORK
++#if true
+@@ -224 +224 @@
+-#if FOUNDATION_FRAMEWORK
++#if true
+@@ -242 +242 @@
+-#if FOUNDATION_FRAMEWORK
++#if true
+@@ -270 +270 @@
+-#if FOUNDATION_FRAMEWORK
++#if true

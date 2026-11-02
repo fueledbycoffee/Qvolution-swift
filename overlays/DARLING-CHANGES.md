@@ -385,3 +385,39 @@ The typed C shims retain Catalyst's documented prototypes and flagged guessed
 enumerator values; no numeric WebSocket values or fabricated opaque handles
 are introduced. Patches and originals are both Ninja dependencies. No Network
 transport behavior is claimed: Darling's C networking backend is still stubbed.
+## Import-review error and URL resource APIs
+
+`Foundation/NSError.swift` additionally adapts the `FOUNDATION_FRAMEWORK` POSIXError
+and POSIXErrorCode conformance from swift-foundation dbacc67779dc
+`FoundationEssentials/Error/ErrorCodes+POSIX.swift`; NSError.domain is a method
+in Darling's Clang import. Only that struct/conformance is carried, not the code
+getter table. `CocoaError.swift` adds the framework branch of the same pin's
+`Error/CocoaError.swift` error factory. `URLResourceValues.swift` adds the six
+queried optional resource getters from `FoundationEssentials/URL/URL.swift`,
+using the existing NSNumber accessor adaptation and date bridge. Missing values
+remain nil; these getters do not synthesize resource information.
+
+## Sort comparators
+
+The unchanged `FoundationEssentials/SortComparator.swift` at dbacc67779dc is
+compiled from the pinned fetch. `FoundationInternationalization/String/String+SortComparator.swift`
+is copied privately and patched to select its `FOUNDATION_FRAMEWORK` branches
+without globally enabling that conditional in the folded overlay. This uses
+Darling's existing NSString comparison/Locale bridge, including localized
+algorithms, Codable and order reversal. No algorithm or symbol alias is invented.
+The carried unified patch has 26 lines versus 294 for a full override, counted
+including diff metadata; the smaller patch form follows this repository's rule.
+The helper checks the source pin and never changes the fetched checkout.
+
+### Language component initialization
+
+`Locale.init(languageCode:script:languageRegion:)` converts the vendored language
+component identifier's region separator to a BCP 47 hyphen before passing it to
+NSLocale. The legacy CF normalizer treats an underscore region as a locale
+preference and strips its default script (`zh-Hant_TW` becomes `zh_TW`). A
+language-region subtag (`zh-Hant-TW`) retains `Hant`, so the returned components
+match the round-three client. No Locale storage or legacy CF API changes.
+`tests/foundation-imports/test-native-locale.py` exercises the actual initializer
+and owned CF normalizer on Linux; the Darwin fixture still requires a guest run.
+This does not change CF's separate stripping of language-default scripts such
+as `Latn` in `en-Latn`; that older behavior remains outside this region fix.

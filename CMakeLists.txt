@@ -239,3 +239,27 @@ if(TARGET_ARM64)
 	InstallSymlink(A "${CMAKE_INSTALL_PREFIX}/${GROUPACTIVITIES_FRAMEWORK_DIR}/Versions/Current")
 	InstallSymlink(Versions/Current/GroupActivities "${CMAKE_INSTALL_PREFIX}/${GROUPACTIVITIES_FRAMEWORK_DIR}/GroupActivities")
 endif()
+
+# Newer clients bind Darwin's errno and POSIXErrorCode to this split overlay.
+# Their implementations remain in the real Swift Darwin source overlay.
+set(DARLING_DARWIN_FOUNDATION_OVERLAY "${CMAKE_CURRENT_SOURCE_DIR}/libswiftDarwin.dylib"
+    CACHE FILEPATH "Source-built Swift Darwin overlay matching the selected runtime")
+if(NOT EXISTS "${DARLING_DARWIN_FOUNDATION_OVERLAY}")
+    message(FATAL_ERROR "Swift Darwin overlay does not exist")
+endif()
+set(DYLIB_INSTALL_NAME "/usr/lib/swift/libswift_DarwinFoundation1.dylib")
+add_darling_library(swift_DarwinFoundation1 SHARED swift_DarwinFoundation1.S)
+target_link_libraries(swift_DarwinFoundation1 system)
+set_target_properties(swift_DarwinFoundation1 PROPERTIES
+    LINKER_LANGUAGE C OUTPUT_NAME "swift_DarwinFoundation1")
+# Keep both install-name mappings in use_ld64 aligned with the re-export.
+get_property(_darwin_foundation_flags TARGET swift_DarwinFoundation1 PROPERTY LINK_FLAGS)
+string(REPLACE "${CMAKE_SOURCE_DIR}/src/external/swift/libswiftDarwin.dylib"
+    "${DARLING_DARWIN_FOUNDATION_OVERLAY}"
+    _darwin_foundation_flags "${_darwin_foundation_flags}")
+set_property(TARGET swift_DarwinFoundation1 PROPERTY LINK_FLAGS "${_darwin_foundation_flags}")
+set_property(TARGET swift_DarwinFoundation1 APPEND_STRING PROPERTY LINK_FLAGS
+    " -Wl,-reexport_library,${DARLING_DARWIN_FOUNDATION_OVERLAY}")
+set_property(TARGET swift_DarwinFoundation1 APPEND PROPERTY LINK_DEPENDS
+    "${DARLING_DARWIN_FOUNDATION_OVERLAY}")
+install(TARGETS swift_DarwinFoundation1 DESTINATION libexec/darling/usr/lib/swift)

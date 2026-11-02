@@ -11,7 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 // Error <-> NSError bridging, from release/5.4 stdlib/public/Darwin/Foundation/NSError.swift. The error code tables
-// (CocoaError, URLError, POSIXError, MachError) are not included.
+// (CocoaError and URLError have separate files; MachError is not included).
 // Darling: NSError's accessors are methods in Darling's headers, the user-info value provider and
 // NSErrorRecoveryAttempting support are omitted (default user info is filled in eagerly), and CFError's conformance
 // goes through its toll-free NSError.
@@ -451,4 +451,23 @@ extension _SwiftNewtypeWrapper where Self.RawValue == Error {
   ) -> Self {
     return Self(rawValue: _convertNSErrorToError(source))!
   }
+}
+
+// Adapted from swift-foundation dbacc67779dc, Error/ErrorCodes+POSIX.swift:
+// Darling imports NSError.domain as a method rather than a property.
+public struct POSIXError: _BridgedStoredNSError {
+  public let _nsError: NSError
+
+  public init(_nsError error: NSError) {
+    precondition(error.domain() == NSPOSIXErrorDomain)
+    self._nsError = error
+  }
+
+  public static var errorDomain: String { return NSPOSIXErrorDomain }
+  public var hashValue: Int { return _nsError.hashValue }
+  public typealias Code = POSIXErrorCode
+}
+
+extension POSIXErrorCode: _ErrorCodeProtocol {
+  public typealias _ErrorType = POSIXError
 }

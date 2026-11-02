@@ -75,3 +75,31 @@ extension CocoaError {
     return CocoaError.Code(rawValue: 4866)
   }
 }
+
+// Published values from swift-foundation dbacc67779dc, Error/ErrorCodes.swift
+// (Apache-2.0 with Runtime Library Exception), also FoundationErrors.h except
+// coderReadCorrupt, which is specified by the public Swift source.
+extension CocoaError.Code {
+  public static var fileNoSuchFile: CocoaError.Code { return CocoaError.Code(rawValue: 4) }
+  public static var fileReadCorruptFile: CocoaError.Code { return CocoaError.Code(rawValue: 259) }
+  public static var fileReadNoSuchFile: CocoaError.Code { return CocoaError.Code(rawValue: 260) }
+  public static var fileReadInapplicableStringEncoding: CocoaError.Code { return CocoaError.Code(rawValue: 261) }
+  public static var fileReadUnsupportedScheme: CocoaError.Code { return CocoaError.Code(rawValue: 262) }
+  public static var fileReadUnknownStringEncoding: CocoaError.Code { return CocoaError.Code(rawValue: 264) }
+  public static var fileWriteUnknown: CocoaError.Code { return CocoaError.Code(rawValue: 512) }
+  public static var userCancelled: CocoaError.Code { return CocoaError.Code(rawValue: 3072) }
+  public static var propertyListReadCorrupt: CocoaError.Code { return CocoaError.Code(rawValue: 3840) }
+  @available(macOS, introduced: 10.11) @available(iOS, introduced: 9.0)
+  public static var coderReadCorrupt: CocoaError.Code { return CocoaError.Code(rawValue: 4864) }
+}
+
+// swift-foundation dbacc67779dc, Error/CocoaError.swift (framework branch).
+extension CocoaError {
+  public static func error(_ code: CocoaError.Code,
+                           userInfo: [AnyHashable: Any]? = nil,
+                           url: URL? = nil) -> Error {
+    var info: [String: Any] = userInfo as? [String: Any] ?? [:]
+    if let url = url { info[NSURLErrorKey] = url }
+    return NSError(domain: NSCocoaErrorDomain, code: code.rawValue, userInfo: info)
+  }
+}

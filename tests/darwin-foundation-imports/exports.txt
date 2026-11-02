@@ -1,0 +1,2 @@
+_$s6Darwin14POSIXErrorCodeO8rawValueACSgs5Int32V_tcfC
+_$s6Darwin5errnos5Int32Vvg

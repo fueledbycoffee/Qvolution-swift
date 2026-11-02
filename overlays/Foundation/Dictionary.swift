@@ -94,3 +94,22 @@ extension Dictionary : _ObjectiveCBridgeable {
     return result!
   }
 }
+
+extension NSDictionary: Sequence {
+  public final class Iterator: IteratorProtocol {
+    private let dictionary: NSDictionary
+    private let keys: NSEnumerator
+
+    fileprivate init(_ dictionary: NSDictionary) {
+      self.dictionary = dictionary
+      self.keys = dictionary.keyEnumerator()
+    }
+
+    public func next() -> (key: Any, value: Any)? {
+      guard let key = keys.nextObject(), let value = dictionary.object(forKey: key) else { return nil }
+      return (key: key, value: value)
+    }
+  }
+
+  public func makeIterator() -> Iterator { return Iterator(self) }
+}

@@ -56,6 +56,14 @@ public struct URLResourceValues {
         return _number(.isSymbolicLinkKey)?.boolValue()
     }
 
+    // swift-foundation dbacc67779dc, FoundationEssentials/URL/URL.swift.
+    public var isReadable: Bool? { return _number(.isReadableKey)?.boolValue() }
+    public var isWritable: Bool? { return _number(.isWritableKey)?.boolValue() }
+    public var isExecutable: Bool? { return _number(.isExecutableKey)?.boolValue() }
+    public var isAliasFile: Bool? { return _number(.isAliasFileKey)?.boolValue() }
+    public var isHidden: Bool? { return _number(.isHiddenKey)?.boolValue() }
+    public var contentModificationDate: Date? { return _get(.contentModificationDateKey) }
+
     public var fileSize: Int? {
         return _number(.fileSizeKey)?.integerValue()
     }
